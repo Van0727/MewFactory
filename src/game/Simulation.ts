@@ -84,12 +84,35 @@ export class Simulation {
     return `${gx},${gy}`;
   }
 
-  private hasCatBlockingNestCenter(gx: number, gy: number): boolean {
-    const cx = gx + 0.5;
-    const cy = gy + 0.5;
-    return this.cats.some(
-      (cat) => Math.hypot(cat.x - cx, cat.y - cy) < 0.25,
-    );
+  /** @returns true if cat revisited a cell and should be removed */
+  private trackCatCell(cat: Cat, gx: number, gy: number): boolean {
+    if (!cat.recentCells) {
+      cat.recentCells = [];
+    }
+    const key = this.cellKey(gx, gy);
+    if (cat.recentCells.at(-1) === key) {
+      return false;
+    }
+    const loop = cat.recentCells.includes(key);
+    cat.recentCells.push(key);
+    if (cat.recentCells.length > 16) {
+      cat.recentCells.shift();
+    }
+    return loop;
+  }
+
+  private wouldRedirectBacktrack(cat: Cat, gx: number, gy: number): boolean {
+    if (!cat.recentCells) {
+      return false;
+    }
+    return cat.recentCells.includes(this.cellKey(gx, gy));
+  }
+
+  private hasCatOnNestCell(gx: number, gy: number): boolean {
+    return this.cats.some((cat) => {
+      const cell = getCatCell(cat);
+      return cell.gx === gx && cell.gy === gy;
+    });
   }
 
   private addCat(cat: Cat): void {
@@ -162,7 +185,7 @@ export class Simulation {
   }
 
   private trySpawnFromNest(gx: number, gy: number, nest: Building): void {
-    if (this.hasCatBlockingNestCenter(gx, gy)) {
+    if (this.hasCatOnNestCell(gx, gy)) {
       return;
     }
 
@@ -180,6 +203,7 @@ export class Simulation {
   }
 
   private resolveConveyorEnd(
+    cat: Cat,
     cellGx: number,
     cellGy: number,
     conveyor: Building,
@@ -196,7 +220,12 @@ export class Simulation {
         continue;
       }
       const nb = this.grid.get(neighbor.gx, neighbor.gy);
-      if (nb?.type === BuildingType.Conveyor && !isOpposite(nb.direction, currentDir)) {
+      if (
+        nb?.type === BuildingType.Conveyor &&
+        !isOpposite(nb.direction, currentDir) &&
+        nb.direction === dir &&
+        !this.wouldRedirectBacktrack(cat, neighbor.gx, neighbor.gy)
+      ) {
         return { kind: 'redirect', gx: neighbor.gx, gy: neighbor.gy };
       }
     }
@@ -231,7 +260,7 @@ export class Simulation {
   }
 
   private handleBoundaryCrossing(
-    _cat: Cat,
+    cat: Cat,
     fromCell: { gx: number; gy: number },
     _direction: Direction,
     toCell: { gx: number; gy: number },
@@ -258,7 +287,7 @@ export class Simulation {
     }
 
     if (fromBuilding?.type === BuildingType.Conveyor) {
-      return this.resolveConveyorEnd(fromCell.gx, fromCell.gy, fromBuilding);
+      return this.resolveConveyorEnd(cat, fromCell.gx, fromCell.gy, fromBuilding);
     }
 
     return { kind: 'remove' };
@@ -268,6 +297,7 @@ export class Simulation {
     cat.x = gx + 0.5;
     cat.y = gy + 0.5;
     cat.approachingBox = null;
+    this.trackCatCell(cat, gx, gy);
     this.applyMutationGate(cat);
   }
 
@@ -366,6 +396,11 @@ export class Simulation {
       }
 
       const fromCell = getCatCell(cat);
+      if (this.trackCatCell(cat, fromCell.gx, fromCell.gy)) {
+        toRemove.push(cat);
+        continue;
+      }
+
       const direction = this.getMoveDirection(cat, fromCell);
       if (!direction) {
         continue;
@@ -395,6 +430,8 @@ export class Simulation {
       if (crossing.kind === 'enter') {
         cat.x = nextX;
         cat.y = nextY;
+        const entered = getCatCell(cat);
+        this.trackCatCell(cat, entered.gx, entered.gy);
         this.applyMutationGate(cat);
         continue;
       }

@@ -10,6 +10,8 @@ export interface Cat {
   mutated: boolean;
   /** 移向包装箱中心时记录目标格 */
   approachingBox: { gx: number; gy: number } | null;
+  /** 最近经过的格子，用于检测传送带循环 */
+  recentCells: string[];
 }
 
 let nextCatId = 1;
@@ -23,6 +25,7 @@ export function createCat(x: number, y: number): Cat {
     basePrice: CAT_BASE_PRICE,
     mutated: false,
     approachingBox: null,
+    recentCells: [],
   };
 }
 
