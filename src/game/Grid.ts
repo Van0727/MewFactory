@@ -81,4 +81,15 @@ export class Grid {
   hasPickupTarget(gx: number, gy: number): boolean {
     return this.getMutationGate(gx, gy) !== null || this.get(gx, gy) !== null;
   }
+
+  forEachBuilding(callback: (gx: number, gy: number, building: Building) => void): void {
+    for (let gy = 0; gy < GRID_SIZE; gy++) {
+      for (let gx = 0; gx < GRID_SIZE; gx++) {
+        const building = this.cells[gy][gx];
+        if (building) {
+          callback(gx, gy, building);
+        }
+      }
+    }
+  }
 }

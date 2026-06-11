@@ -1,27 +1,33 @@
 import {
   COLOR_BACKGROUND,
-  COLOR_DARK,
   COLOR_DARK_FRONT,
-  COLOR_LIGHT,
+  COLOR_GROUND_BASE,
   COLOR_LIGHT_FRONT,
-  COLOR_PLAYER,
   COLOR_TILE_PLACE_INVALID,
   COLOR_TILE_PLACE_VALID,
   GRID_SIZE,
-  TILE_HEIGHT,
+  TILE_GROUND_BLEED_PX,
 } from '../config';
-import type { Building } from '../game/Building';
+import { BuildingType, type Building } from '../game/Building';
+import type { Cat } from '../game/Cat';
 import type { Grid } from '../game/Grid';
 import type { Player } from '../game/Player';
-import { drawBuilding, drawBuildingAtPoint } from './buildingDraw';
+import { getSprite } from './assets';
+import { drawBuilding, drawHeldBuildingInCell } from './buildingDraw';
+import { drawBoxCount, drawCat, getCatSortY } from './catDraw';
 import {
   computeOrigin,
-  getPlayerAnchor,
   getTileFrontCorners,
   getTileSortY,
   getTileTopCorners,
   type IsoOrigin,
 } from './isometric';
+import {
+  configureSpriteSmoothing,
+  drawSpriteFlatInCell,
+  drawSpriteInIsoTile,
+  expandCorners,
+} from './spriteDraw';
 
 export interface DrawState {
   player: Player;
@@ -29,6 +35,9 @@ export interface DrawState {
   heldBuilding: Building | null;
   previewCell: { gx: number; gy: number } | null;
   canPlaceAtPreview: boolean | null;
+  cats: readonly Cat[];
+  getBoxCount: (gx: number, gy: number) => number;
+  getBoxDrawScale: (gx: number, gy: number) => number;
 }
 
 type TileHighlight = 'valid' | 'invalid' | null;
@@ -47,6 +56,19 @@ export class Renderer {
       throw new Error('Failed to get 2D context');
     }
     this.ctx = ctx;
+    configureSpriteSmoothing(this.ctx);
+  }
+
+  showLoading(message = 'Loading...'): void {
+    const rect = this.canvas.getBoundingClientRect();
+    this.ctx.clearRect(0, 0, rect.width, rect.height);
+    this.ctx.fillStyle = COLOR_BACKGROUND;
+    this.ctx.fillRect(0, 0, rect.width, rect.height);
+    this.ctx.fillStyle = '#ccc';
+    this.ctx.font = '18px sans-serif';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(message, rect.width / 2, rect.height / 2);
   }
 
   resize(): void {
@@ -99,12 +121,33 @@ export class Renderer {
 
       const building = state.grid.get(tile.gx, tile.gy);
       if (building) {
-        drawBuilding(this.ctx, tile.gx, tile.gy, building, this.origin);
+        const boxScale =
+          building.type === BuildingType.PackingBox
+            ? state.getBoxDrawScale(tile.gx, tile.gy)
+            : 1;
+        drawBuilding(this.ctx, tile.gx, tile.gy, building, this.origin, boxScale);
       }
       const gate = state.grid.getMutationGate(tile.gx, tile.gy);
       if (gate) {
         drawBuilding(this.ctx, tile.gx, tile.gy, gate, this.origin);
       }
+
+      if (building?.type === BuildingType.PackingBox) {
+        drawBoxCount(
+          this.ctx,
+          tile.gx,
+          tile.gy,
+          state.getBoxCount(tile.gx, tile.gy),
+          this.origin,
+        );
+      }
+    }
+
+    const sortedCats = [...state.cats].sort(
+      (a, b) => getCatSortY(a, this.origin) - getCatSortY(b, this.origin),
+    );
+    for (const cat of sortedCats) {
+      drawCat(this.ctx, cat, this.origin);
     }
 
     this.drawPlayer(state.player, state.heldBuilding);
@@ -122,51 +165,31 @@ export class Renderer {
 
   private drawTile(gx: number, gy: number, highlight: TileHighlight): void {
     const isLight = (gx + gy) % 2 === 0;
-    const topColor = isLight ? COLOR_LIGHT : COLOR_DARK;
     const frontColor = isLight ? COLOR_LIGHT_FRONT : COLOR_DARK_FRONT;
+    const topCorners = getTileTopCorners(gx, gy, this.origin);
+    const tileSprite = isLight ? getSprite('tileLight') : getSprite('tileDark');
 
     this.fillPolygon(getTileFrontCorners(gx, gy, this.origin), frontColor);
-    this.fillPolygon(getTileTopCorners(gx, gy, this.origin), topColor);
+    // Neutral under-fill: any sub-pixel gap between tiles shows this, not the dark background.
+    this.fillPolygon(expandCorners(topCorners, TILE_GROUND_BLEED_PX), COLOR_GROUND_BASE);
+    drawSpriteInIsoTile(this.ctx, tileSprite, topCorners);
 
     if (highlight) {
       const overlay =
         highlight === 'valid' ? COLOR_TILE_PLACE_VALID : COLOR_TILE_PLACE_INVALID;
-      this.fillPolygon(getTileTopCorners(gx, gy, this.origin), overlay);
+      this.fillPolygon(topCorners, overlay);
     }
-
-    const top = getTileTopCorners(gx, gy, this.origin);
-    this.ctx.beginPath();
-    this.ctx.moveTo(top[0][0], top[0][1]);
-    for (let i = 1; i < top.length; i++) {
-      this.ctx.lineTo(top[i][0], top[i][1]);
-    }
-    this.ctx.closePath();
-    this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
-    this.ctx.lineWidth = Math.max(1, this.origin.viewScale);
-    this.ctx.stroke();
   }
 
   private drawPlayer(player: Player, heldBuilding: Building | null): void {
-    const { cx, cy, scale } = getPlayerAnchor(player.x, player.y, this.origin);
-    const radius = TILE_HEIGHT * 0.42 * scale;
+    const cellGx = player.x - 0.5;
+    const cellGy = player.y - 0.5;
+    const playerSprite = getSprite('player');
 
-    this.ctx.beginPath();
-    this.ctx.ellipse(cx, cy + radius * 0.15, radius * 0.75, radius * 0.3, 0, 0, Math.PI * 2);
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-    this.ctx.fill();
-
-    this.ctx.beginPath();
-    this.ctx.ellipse(cx, cy - radius * 0.35, radius * 0.55, radius * 0.7, 0, 0, Math.PI * 2);
-    this.ctx.fillStyle = COLOR_PLAYER;
-    this.ctx.fill();
-    this.ctx.strokeStyle = '#2a5a8a';
-    this.ctx.lineWidth = 2;
-    this.ctx.stroke();
+    drawSpriteFlatInCell(this.ctx, playerSprite, cellGx, cellGy, this.origin);
 
     if (heldBuilding) {
-      const holdY = cy - radius * 2.1;
-      const holdScale = scale * 0.85;
-      drawBuildingAtPoint(this.ctx, cx, holdY, holdScale, heldBuilding);
+      drawHeldBuildingInCell(this.ctx, cellGx, cellGy, this.origin, heldBuilding);
     }
   }
 

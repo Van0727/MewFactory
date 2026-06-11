@@ -8,11 +8,13 @@ import {
   rotateDirection,
   type Building,
 } from './Building';
+import { seedDemoPipeline, shouldLoadDemoPipeline } from './demoLayout';
 import { Grid } from './Grid';
 import { getPlayerCell } from './gridUtils';
 import { Inventory, PICKUP_SLOT_INDEX } from './Inventory';
 import { canPlaceBuilding } from './placement';
 import { Player } from './Player';
+import { Simulation } from './Simulation';
 
 type InteractionMode = 'place' | 'pickup';
 
@@ -23,6 +25,7 @@ export class Game {
   private hotbar: Hotbar;
   private actionButtons: ActionButtons;
   private grid = new Grid();
+  private simulation = new Simulation(this.grid);
   private inventory = new Inventory();
   private mode: InteractionMode = 'pickup';
   private heldBuilding: Building | null = null;
@@ -75,6 +78,10 @@ export class Game {
     this.resizeObserver.observe(canvas.parentElement ?? canvas);
     this.hotbar.select(PICKUP_SLOT_INDEX);
     this.updateActionButtons();
+
+    if (shouldLoadDemoPipeline()) {
+      seedDemoPipeline(this.grid, this.simulation);
+    }
   }
 
   start(): void {
@@ -109,6 +116,8 @@ export class Game {
     this.player.update(dt, this.input.getMovement());
     this.updateActionButtons();
 
+    this.simulation.update(dt);
+
     const inPlaceMode = this.mode === 'place' && this.heldBuilding !== null;
     const previewCell = inPlaceMode ? getPlayerCell(this.player) : null;
     const canPlaceAtPreview =
@@ -122,6 +131,9 @@ export class Game {
       heldBuilding: this.heldBuilding,
       previewCell,
       canPlaceAtPreview,
+      cats: this.simulation.getCats(),
+      getBoxCount: (gx, gy) => this.simulation.getBoxCount(gx, gy),
+      getBoxDrawScale: (gx, gy) => this.simulation.getBoxDrawScale(gx, gy),
     });
 
     requestAnimationFrame(this.frame);
@@ -172,6 +184,18 @@ export class Game {
       return;
     }
     this.heldBuilding.direction = rotateDirection(this.heldBuilding.direction);
+    this.syncHeldDirectionToSlot();
+  }
+
+  /** 旋转后的方向写回快捷栏堆叠，放置时与预览一致 */
+  private syncHeldDirectionToSlot(): void {
+    if (this.heldSlotIndex === null || !this.heldBuilding) {
+      return;
+    }
+    const slot = this.inventory.getSlot(this.heldSlotIndex);
+    if (slot) {
+      slot.building.direction = this.heldBuilding.direction;
+    }
   }
 
   private placeBuilding(): void {
@@ -180,6 +204,7 @@ export class Game {
     }
 
     const { gx, gy } = getPlayerCell(this.player);
+    this.syncHeldDirectionToSlot();
     const building = { ...this.heldBuilding };
 
     if (!canPlaceBuilding(this.grid, gx, gy, building)) {
@@ -196,6 +221,8 @@ export class Game {
     } else {
       this.grid.set(gx, gy, building);
     }
+
+    this.simulation.onBuildingPlaced(gx, gy, building);
 
     const taken = this.inventory.takeOne(this.heldSlotIndex);
     if (!taken) {
@@ -222,6 +249,8 @@ export class Game {
     if (!picked) {
       return;
     }
+
+    this.simulation.onBuildingRemoved(gx, gy);
 
     this.inventory.addBuilding(picked);
     this.hotbar.refresh();

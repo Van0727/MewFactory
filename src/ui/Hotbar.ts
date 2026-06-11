@@ -1,4 +1,4 @@
-import { getBuildingLabel } from '../game/Building';
+import { getUiIconUrl, getUiPickupUrl } from '../render/assets';
 import type { Inventory, InventorySlot } from '../game/Inventory';
 import { FIRST_INVENTORY_SLOT, INVENTORY_SLOT_COUNT, PICKUP_SLOT_INDEX } from '../game/Inventory';
 
@@ -25,16 +25,14 @@ export class Hotbar {
       label.textContent = KEY_LABELS[i];
       slot.appendChild(label);
 
+      const icon = document.createElement('span');
+      icon.className = i === PICKUP_SLOT_INDEX ? 'slot-icon pickup-icon' : 'slot-icon building-icon';
       if (i === PICKUP_SLOT_INDEX) {
-        const icon = document.createElement('span');
-        icon.className = 'slot-icon pickup-icon';
-        icon.textContent = '✋';
-        slot.appendChild(icon);
-      } else {
-        const icon = document.createElement('span');
-        icon.className = 'slot-icon building-icon';
-        slot.appendChild(icon);
+        icon.style.backgroundImage = `url(${getUiPickupUrl()})`;
+      }
+      slot.appendChild(icon);
 
+      if (i !== PICKUP_SLOT_INDEX) {
         const badge = document.createElement('span');
         badge.className = 'count-badge';
         badge.style.display = 'none';
@@ -80,13 +78,13 @@ export class Hotbar {
       const data = this.inventory.getSlot(i);
 
       if (data) {
-        icon.textContent = getBuildingLabel(data.building.type);
+        icon.style.backgroundImage = `url(${getUiIconUrl(data.building.type)})`;
         icon.style.display = '';
         icon.dataset.type = data.building.type;
         badge.textContent = String(data.count);
         badge.style.display = data.count > 1 ? '' : 'none';
       } else {
-        icon.textContent = '';
+        icon.style.backgroundImage = '';
         icon.style.display = 'none';
         icon.removeAttribute('data-type');
         badge.style.display = 'none';

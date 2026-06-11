@@ -1,53 +1,14 @@
-import {
-  COLOR_BUILDING_CAT_NEST,
-  COLOR_BUILDING_CONVEYOR,
-  COLOR_BUILDING_MUTATION_GATE,
-  COLOR_BUILDING_PACKING_BOX,
-  TILE_WIDTH,
-} from '../config';
-import {
-  BuildingType,
-  Direction,
-  type Building,
-} from '../game/Building';
-import { getTileTopCorners, type IsoOrigin } from './isometric';
+import { BuildingType, type Building } from '../game/Building';
+import { getBuildingSprite } from './assets';
+import { type IsoOrigin } from './isometric';
+import { directionToAngle, drawSpriteFlatInCell, drawSpriteInCell } from './spriteDraw';
 
-function getBuildingColor(type: BuildingType): string {
-  switch (type) {
-    case BuildingType.CatNest:
-      return COLOR_BUILDING_CAT_NEST;
-    case BuildingType.Conveyor:
-      return COLOR_BUILDING_CONVEYOR;
-    case BuildingType.PackingBox:
-      return COLOR_BUILDING_PACKING_BOX;
-    case BuildingType.MutationGate:
-      return COLOR_BUILDING_MUTATION_GATE;
-  }
-}
-
-function getDirectionVector(dir: Direction): [number, number] {
-  switch (dir) {
-    case Direction.Up:
-      return [0, -1];
-    case Direction.Down:
-      return [0, 1];
-    case Direction.Left:
-      return [-1, 0];
-    case Direction.Right:
-      return [1, 0];
-  }
-}
-
-function getTileCenter(
-  gx: number,
-  gy: number,
-  origin: IsoOrigin,
-): { cx: number; cy: number; scale: number } {
-  const corners = getTileTopCorners(gx, gy, origin);
-  const cx = (corners[0][0] + corners[1][0] + corners[2][0] + corners[3][0]) / 4;
-  const cy = (corners[0][1] + corners[1][1] + corners[2][1] + corners[3][1]) / 4;
-  const scale = Math.hypot(corners[1][0] - corners[0][0], corners[1][1] - corners[0][1]) / TILE_WIDTH;
-  return { cx, cy, scale };
+function buildingNeedsRotation(type: BuildingType): boolean {
+  return (
+    type === BuildingType.CatNest ||
+    type === BuildingType.Conveyor ||
+    type === BuildingType.MutationGate
+  );
 }
 
 export function drawBuilding(
@@ -56,85 +17,40 @@ export function drawBuilding(
   gy: number,
   building: Building,
   origin: IsoOrigin,
+  drawScale = 1,
 ): void {
-  const { cx, cy, scale } = getTileCenter(gx, gy, origin);
-  drawBuildingAtPoint(ctx, cx, cy, scale, building);
+  drawBuildingInCell(ctx, gx, gy, origin, building, drawScale);
 }
 
-export function drawBuildingAtPoint(
+export function drawBuildingInCell(
   ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  scale: number,
+  gx: number,
+  gy: number,
+  origin: IsoOrigin,
   building: Building,
+  drawScale = 1,
 ): void {
-  const size = 18 * scale;
-  const color = getBuildingColor(building.type);
+  const sprite = getBuildingSprite(building.type);
+  const rotation = buildingNeedsRotation(building.type)
+    ? directionToAngle(building.direction)
+    : 0;
 
-  ctx.save();
-
-  if (building.type === BuildingType.PackingBox) {
-    ctx.fillStyle = color;
-    ctx.fillRect(cx - size * 0.6, cy - size * 0.5, size * 1.2, size);
-    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(cx - size * 0.6, cy - size * 0.5, size * 1.2, size);
-  } else if (building.type === BuildingType.MutationGate) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3 * scale;
-    ctx.beginPath();
-    ctx.arc(cx, cy, size * 0.55, 0, Math.PI * 2);
-    ctx.stroke();
-    drawDirectionArrow(ctx, cx, cy, building.direction, size * 0.5, color);
-  } else {
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(cx, cy, size * 0.55, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    if (building.type === BuildingType.Conveyor || building.type === BuildingType.CatNest) {
-      drawDirectionArrow(ctx, cx, cy, building.direction, size * 0.45, '#fff');
-    }
-  }
-
-  ctx.restore();
+  drawSpriteInCell(ctx, sprite, gx, gy, origin, { rotation, drawScale });
 }
 
-function drawDirectionArrow(
+/** 手持建筑：无透视，正方向绘制 */
+export function drawHeldBuildingInCell(
   ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  direction: Direction,
-  length: number,
-  color: string,
+  gx: number,
+  gy: number,
+  origin: IsoOrigin,
+  building: Building,
+  drawScale = 1,
 ): void {
-  const [dx, dy] = getDirectionVector(direction);
-  const endX = cx + dx * length;
-  const endY = cy + dy * length;
+  const sprite = getBuildingSprite(building.type);
+  const rotation = buildingNeedsRotation(building.type)
+    ? directionToAngle(building.direction)
+    : 0;
 
-  ctx.strokeStyle = color;
-  ctx.fillStyle = color;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(cx - dx * length * 0.3, cy - dy * length * 0.3);
-  ctx.lineTo(endX, endY);
-  ctx.stroke();
-
-  const headSize = length * 0.35;
-  const angle = Math.atan2(dy, dx);
-  ctx.beginPath();
-  ctx.moveTo(endX, endY);
-  ctx.lineTo(
-    endX - headSize * Math.cos(angle - Math.PI / 6),
-    endY - headSize * Math.sin(angle - Math.PI / 6),
-  );
-  ctx.lineTo(
-    endX - headSize * Math.cos(angle + Math.PI / 6),
-    endY - headSize * Math.sin(angle + Math.PI / 6),
-  );
-  ctx.closePath();
-  ctx.fill();
+  drawSpriteFlatInCell(ctx, sprite, gx, gy, origin, { rotation, drawScale });
 }
