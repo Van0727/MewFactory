@@ -6,9 +6,17 @@
     <title>Mew</title>
   </head>
   <body>
-    <div id="game-container">
-      <canvas id="game"></canvas>
-      <div id="hotbar"></div>
+    <div id="viewport">
+      <div id="game-container">
+        <div id="game-stage">
+          <canvas id="game"></canvas>
+          <div id="ui-overlay">
+            <div id="shop-panel"></div>
+            <div id="action-buttons"></div>
+          </div>
+        </div>
+        <div id="hotbar"></div>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

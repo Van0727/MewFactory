@@ -1,0 +1,84 @@
+import { GRID_SIZE } from '../config';
+import { BuildingType, type Building } from './Building';
+
+export class Grid {
+  private cells: (Building | null)[][];
+  private mutationGates: (Building | null)[][];
+
+  constructor() {
+    this.cells = Array.from({ length: GRID_SIZE }, () =>
+      Array.from({ length: GRID_SIZE }, () => null),
+    );
+    this.mutationGates = Array.from({ length: GRID_SIZE }, () =>
+      Array.from({ length: GRID_SIZE }, () => null),
+    );
+  }
+
+  inBounds(gx: number, gy: number): boolean {
+    return gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE;
+  }
+
+  get(gx: number, gy: number): Building | null {
+    if (!this.inBounds(gx, gy)) {
+      return null;
+    }
+    return this.cells[gy][gx];
+  }
+
+  getMutationGate(gx: number, gy: number): Building | null {
+    if (!this.inBounds(gx, gy)) {
+      return null;
+    }
+    return this.mutationGates[gy][gx];
+  }
+
+  set(gx: number, gy: number, building: Building): void {
+    if (!this.inBounds(gx, gy)) {
+      return;
+    }
+    this.cells[gy][gx] = building;
+    if (building.type !== BuildingType.Conveyor) {
+      this.mutationGates[gy][gx] = null;
+    }
+  }
+
+  setMutationGate(gx: number, gy: number, gate: Building): void {
+    if (!this.inBounds(gx, gy)) {
+      return;
+    }
+    this.mutationGates[gy][gx] = gate;
+  }
+
+  remove(gx: number, gy: number): Building | null {
+    if (!this.inBounds(gx, gy)) {
+      return null;
+    }
+
+    const gate = this.mutationGates[gy][gx];
+    if (gate) {
+      this.mutationGates[gy][gx] = null;
+      return gate;
+    }
+
+    const building = this.cells[gy][gx];
+    this.cells[gy][gx] = null;
+    return building;
+  }
+
+  isEmpty(gx: number, gy: number): boolean {
+    return this.get(gx, gy) === null;
+  }
+
+  hasConveyor(gx: number, gy: number): boolean {
+    const building = this.get(gx, gy);
+    return building?.type === BuildingType.Conveyor;
+  }
+
+  canPlaceMutationGate(gx: number, gy: number): boolean {
+    return this.hasConveyor(gx, gy) && this.getMutationGate(gx, gy) === null;
+  }
+
+  hasPickupTarget(gx: number, gy: number): boolean {
+    return this.getMutationGate(gx, gy) !== null || this.get(gx, gy) !== null;
+  }
+}

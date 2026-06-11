@@ -1,12 +1,21 @@
+import { getBuildingLabel } from '../game/Building';
+import type { Inventory, InventorySlot } from '../game/Inventory';
+import { FIRST_INVENTORY_SLOT, INVENTORY_SLOT_COUNT, PICKUP_SLOT_INDEX } from '../game/Inventory';
+
 const KEY_LABELS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+const SLOT_COUNT = INVENTORY_SLOT_COUNT + 1;
 
 export class Hotbar {
   private slots: HTMLElement[] = [];
-  private selectedIndex = 0;
+  private selectedIndex = PICKUP_SLOT_INDEX;
+  private slotListeners: Array<(index: number) => void> = [];
+  private inventory: Inventory;
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, inventory: Inventory) {
+    this.inventory = inventory;
     container.innerHTML = '';
-    for (let i = 0; i < 10; i++) {
+
+    for (let i = 0; i < SLOT_COUNT; i++) {
       const slot = document.createElement('div');
       slot.className = 'hotbar-slot';
       slot.dataset.index = String(i);
@@ -16,15 +25,43 @@ export class Hotbar {
       label.textContent = KEY_LABELS[i];
       slot.appendChild(label);
 
+      if (i === PICKUP_SLOT_INDEX) {
+        const icon = document.createElement('span');
+        icon.className = 'slot-icon pickup-icon';
+        icon.textContent = '✋';
+        slot.appendChild(icon);
+      } else {
+        const icon = document.createElement('span');
+        icon.className = 'slot-icon building-icon';
+        slot.appendChild(icon);
+
+        const badge = document.createElement('span');
+        badge.className = 'count-badge';
+        badge.style.display = 'none';
+        slot.appendChild(badge);
+      }
+
+      slot.addEventListener('click', () => {
+        this.select(i);
+        for (const listener of this.slotListeners) {
+          listener(i);
+        }
+      });
+
       container.appendChild(slot);
       this.slots.push(slot);
     }
 
     this.updateSelection();
+    this.refresh();
+  }
+
+  onSlotSelect(listener: (index: number) => void): void {
+    this.slotListeners.push(listener);
   }
 
   select(index: number): void {
-    if (index < 0 || index > 9) {
+    if (index < 0 || index >= SLOT_COUNT) {
       return;
     }
     this.selectedIndex = index;
@@ -33,6 +70,35 @@ export class Hotbar {
 
   getSelectedIndex(): number {
     return this.selectedIndex;
+  }
+
+  refresh(): void {
+    for (let i = FIRST_INVENTORY_SLOT; i < SLOT_COUNT; i++) {
+      const slotEl = this.slots[i];
+      const icon = slotEl.querySelector('.building-icon') as HTMLElement;
+      const badge = slotEl.querySelector('.count-badge') as HTMLElement;
+      const data = this.inventory.getSlot(i);
+
+      if (data) {
+        icon.textContent = getBuildingLabel(data.building.type);
+        icon.style.display = '';
+        icon.dataset.type = data.building.type;
+        badge.textContent = String(data.count);
+        badge.style.display = data.count > 1 ? '' : 'none';
+      } else {
+        icon.textContent = '';
+        icon.style.display = 'none';
+        icon.removeAttribute('data-type');
+        badge.style.display = 'none';
+      }
+    }
+  }
+
+  getSlotData(index: number): InventorySlot | null {
+    if (index < FIRST_INVENTORY_SLOT) {
+      return null;
+    }
+    return this.inventory.getSlot(index);
   }
 
   private updateSelection(): void {

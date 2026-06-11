@@ -19,6 +19,9 @@ const HOTBAR_KEYS: Record<string, number> = {
 };
 
 const MOVEMENT_KEYS = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright']);
+const ACTION_KEYS = new Set(['e', 'r']);
+
+export type ActionKey = 'e' | 'r';
 
 export class InputManager {
   private movement: MovementState = {
@@ -29,6 +32,7 @@ export class InputManager {
   };
 
   private hotbarListeners: Array<(index: number) => void> = [];
+  private actionKeyListeners: Array<(key: ActionKey) => void> = [];
 
   constructor() {
     window.addEventListener('keydown', this.onKeyDown);
@@ -44,6 +48,10 @@ export class InputManager {
     this.hotbarListeners.push(listener);
   }
 
+  onActionKey(listener: (key: ActionKey) => void): void {
+    this.actionKeyListeners.push(listener);
+  }
+
   getMovement(): MovementState {
     return this.movement;
   }
@@ -51,8 +59,15 @@ export class InputManager {
   private onKeyDown = (e: KeyboardEvent): void => {
     const key = e.key.toLowerCase();
 
-    if (MOVEMENT_KEYS.has(key)) {
+    if (MOVEMENT_KEYS.has(key) || ACTION_KEYS.has(key)) {
       e.preventDefault();
+    }
+
+    if (ACTION_KEYS.has(key) && !e.repeat) {
+      for (const listener of this.actionKeyListeners) {
+        listener(key as ActionKey);
+      }
+      return;
     }
 
     if (key in HOTBAR_KEYS) {
