@@ -20,6 +20,7 @@ export type AssetKey =
   | 'catNormal'
   | 'catMutated'
   | 'player'
+  | 'sellShop'
   | 'uiPickup'
   | 'uiCatNest'
   | 'uiConveyor'
@@ -36,6 +37,7 @@ const ASSET_PATHS: Record<AssetKey, string> = {
   catNormal: 'assets/cats/cat_normal.png',
   catMutated: 'assets/cats/cat_mutated.png',
   player: 'assets/player/player.png',
+  sellShop: 'assets/buildings/sell_shop.png',
   uiPickup: 'assets/ui/pickup.png',
   uiCatNest: 'assets/ui/cat_nest.png',
   uiConveyor: 'assets/ui/conveyor.png',
@@ -99,4 +101,8 @@ export function getUiIconUrl(type: BuildingType): string {
 
 export function getUiPickupUrl(): string {
   return assetUrl(ASSET_PATHS.uiPickup);
+}
+
+export function getCatSpriteUrl(): string {
+  return assetUrl(ASSET_PATHS.catNormal);
 }

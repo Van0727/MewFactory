@@ -7,8 +7,9 @@ const canvas = document.getElementById('game') as HTMLCanvasElement | null;
 const hotbar = document.getElementById('hotbar') as HTMLElement | null;
 const actionButtons = document.getElementById('action-buttons') as HTMLElement | null;
 const shopPanel = document.getElementById('shop-panel') as HTMLElement | null;
+const goldBar = document.getElementById('gold-bar') as HTMLElement | null;
 
-if (!canvas || !hotbar || !actionButtons || !shopPanel) {
+if (!canvas || !hotbar || !actionButtons || !shopPanel || !goldBar) {
   throw new Error('Missing required DOM elements');
 }
 
@@ -16,12 +17,13 @@ const gameCanvas = canvas;
 const hotbarEl = hotbar;
 const actionButtonsEl = actionButtons;
 const shopPanelEl = shopPanel;
+const goldBarEl = goldBar;
 const loadingRenderer = new Renderer(gameCanvas);
 loadingRenderer.showLoading();
 
 async function bootstrap(): Promise<void> {
   await loadAssets();
-  const game = new Game(gameCanvas, hotbarEl, actionButtonsEl, shopPanelEl);
+  const game = new Game(gameCanvas, hotbarEl, actionButtonsEl, shopPanelEl, goldBarEl);
   game.start();
 }
 

@@ -6,8 +6,9 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export class Player {
-  x = GRID_SIZE / 2;
-  y = GRID_SIZE / 2;
+  /** 脚底（精灵底部中心）在网格上的连续坐标 */
+  x = Math.floor(GRID_SIZE / 2) + 0.5;
+  y = Math.floor(GRID_SIZE / 2) + 0.5;
 
   update(dt: number, input: MovementState): void {
     let dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);

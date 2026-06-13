@@ -1,6 +1,8 @@
 import { InputManager } from '../input/InputManager';
 import { Renderer } from '../render/Renderer';
+import { CAT_BASE_PRICE } from '../config';
 import { ActionButtons } from '../ui/ActionButtons';
+import { GoldBar } from '../ui/GoldBar';
 import { Hotbar } from '../ui/Hotbar';
 import { ShopPanel } from '../ui/ShopPanel';
 import {
@@ -8,10 +10,13 @@ import {
   rotateDirection,
   type Building,
 } from './Building';
-import { seedDemoPipeline, shouldLoadDemoPipeline } from './demoLayout';
+import { seedStarterPipeline } from './starterLayout';
+import { seedFixedShops } from './fixedShops';
 import { Grid } from './Grid';
 import { getPlayerCell } from './gridUtils';
+import { HeldCats } from './HeldCats';
 import { Inventory, PICKUP_SLOT_INDEX } from './Inventory';
+import { PlayerGold } from './PlayerGold';
 import { canPlaceBuilding } from './placement';
 import { Player } from './Player';
 import { Simulation } from './Simulation';
@@ -27,9 +32,13 @@ export class Game {
   private grid = new Grid();
   private simulation = new Simulation(this.grid);
   private inventory = new Inventory();
+  private heldCats = new HeldCats();
+  private playerGold = new PlayerGold();
+  private goldBar: GoldBar;
   private mode: InteractionMode = 'pickup';
   private heldBuilding: Building | null = null;
   private heldSlotIndex: number | null = null;
+  private lastPlayerCellKey: string | null = null;
   private lastTime = 0;
   private running = false;
   private resizeObserver: ResizeObserver;
@@ -39,11 +48,13 @@ export class Game {
     hotbarContainer: HTMLElement,
     actionButtonsContainer: HTMLElement,
     shopContainer: HTMLElement,
+    goldBarContainer: HTMLElement,
   ) {
     this.input = new InputManager();
     this.renderer = new Renderer(canvas);
-    this.hotbar = new Hotbar(hotbarContainer, this.inventory);
+    this.hotbar = new Hotbar(hotbarContainer, this.inventory, this.heldCats);
     this.actionButtons = new ActionButtons(actionButtonsContainer);
+    this.goldBar = new GoldBar(goldBarContainer, this.playerGold);
     new ShopPanel(shopContainer, this.inventory, () => this.onInventoryChange());
 
     this.input.onHotbarSelect((index) => {
@@ -70,6 +81,10 @@ export class Game {
         } else if (this.mode === 'pickup') {
           this.handleAction('pickup');
         }
+        return;
+      }
+      if (key === ' ') {
+        this.handleAction('bag');
       }
     });
 
@@ -79,9 +94,8 @@ export class Game {
     this.hotbar.select(PICKUP_SLOT_INDEX);
     this.updateActionButtons();
 
-    if (shouldLoadDemoPipeline()) {
-      seedDemoPipeline(this.grid, this.simulation);
-    }
+    seedStarterPipeline(this.grid, this.simulation);
+    seedFixedShops(this.grid);
   }
 
   start(): void {
@@ -114,6 +128,7 @@ export class Game {
     this.lastTime = time;
 
     this.player.update(dt, this.input.getMovement());
+    this.checkShopSell();
     this.updateActionButtons();
 
     this.simulation.update(dt);
@@ -129,11 +144,13 @@ export class Game {
       player: this.player,
       grid: this.grid,
       heldBuilding: this.heldBuilding,
+      heldCatCount: this.heldCats.getCount(),
       previewCell,
       canPlaceAtPreview,
       cats: this.simulation.getCats(),
       getBoxCount: (gx, gy) => this.simulation.getBoxCount(gx, gy),
       getBoxDrawScale: (gx, gy) => this.simulation.getBoxDrawScale(gx, gy),
+      getNestSpawnCountdown: (gx, gy) => this.simulation.getNestSpawnCountdown(gx, gy),
     });
 
     requestAnimationFrame(this.frame);
@@ -165,7 +182,7 @@ export class Game {
     this.updateActionButtons();
   }
 
-  private handleAction(action: 'place' | 'rotate' | 'pickup'): void {
+  private handleAction(action: 'place' | 'rotate' | 'pickup' | 'bag'): void {
     switch (action) {
       case 'place':
         this.placeBuilding();
@@ -175,6 +192,9 @@ export class Game {
         break;
       case 'pickup':
         this.pickupBuilding();
+        break;
+      case 'bag':
+        this.bagCats();
         break;
     }
   }
@@ -243,6 +263,41 @@ export class Game {
     this.updateActionButtons();
   }
 
+  private checkShopSell(): void {
+    const { gx, gy } = getPlayerCell(this.player);
+    const key = `${gx},${gy}`;
+    if (key === this.lastPlayerCellKey) {
+      return;
+    }
+    this.lastPlayerCellKey = key;
+
+    if (this.grid.isShop(gx, gy)) {
+      this.sellAllHeldCats();
+    }
+  }
+
+  private sellAllHeldCats(): void {
+    const count = this.heldCats.takeAll();
+    if (count <= 0) {
+      return;
+    }
+    this.playerGold.add(count * CAT_BASE_PRICE);
+    this.hotbar.refresh();
+    this.goldBar.refresh();
+    this.updateActionButtons();
+  }
+
+  private bagCats(): void {
+    const { gx, gy } = getPlayerCell(this.player);
+    const taken = this.simulation.takeAllCatsFromBox(gx, gy);
+    if (taken <= 0) {
+      return;
+    }
+    this.heldCats.add(taken);
+    this.hotbar.refresh();
+    this.updateActionButtons();
+  }
+
   private pickupBuilding(): void {
     const { gx, gy } = getPlayerCell(this.player);
     const picked = this.grid.remove(gx, gy);
@@ -258,21 +313,32 @@ export class Game {
   }
 
   private updateActionButtons(): void {
+    const { gx, gy } = getPlayerCell(this.player);
+    const onPackingBox = this.grid.get(gx, gy)?.type === BuildingType.PackingBox;
+    const boxHasCats = onPackingBox && this.simulation.getBoxCount(gx, gy) > 0;
+
     if (this.mode === 'place' && this.heldBuilding) {
       const isMutationGate = this.heldBuilding.type === BuildingType.MutationGate;
       this.actionButtons.showPlaceMode({
         rotateEnabled: !isMutationGate,
         hint: isMutationGate ? '可放置在传送带上' : '可放置在空地上',
       });
+      this.actionButtons.setBagButton(onPackingBox, boxHasCats);
       return;
     }
 
     if (this.mode === 'pickup') {
-      const { gx, gy } = getPlayerCell(this.player);
       if (this.grid.hasPickupTarget(gx, gy)) {
         this.actionButtons.showPickupMode();
+        this.actionButtons.setBagButton(onPackingBox, boxHasCats);
         return;
       }
+    }
+
+    if (onPackingBox) {
+      this.actionButtons.hideAll();
+      this.actionButtons.setBagButton(true, boxHasCats);
+      return;
     }
 
     this.actionButtons.hideAll();

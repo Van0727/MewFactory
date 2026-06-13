@@ -1,12 +1,13 @@
 import {
   CAT_ARRIVE_EPSILON,
   CAT_NEST_SPAWN_INTERVAL,
+  CAT_MUTATION_PULSE_DURATION,
   CONVEYOR_SPEED,
   GRID_SIZE,
   PACKING_BOX_CAPACITY,
   PACK_BOX_PULSE_DURATION,
 } from '../config';
-import { BuildingType, Direction, type Building } from './Building';
+import { BuildingType, Direction, getMutationGateMultiplier, type Building } from './Building';
 import { createCat, getBoxCenter, getCatCell, type Cat } from './Cat';
 import {
   ALL_DIRECTIONS,
@@ -40,6 +41,7 @@ export class Simulation {
 
   update(dt: number): void {
     this.updateBoxPulse(dt);
+    this.updateCatPulseAnims(dt);
     this.updateCatNests(dt);
     this.updateCatMotion(dt);
   }
@@ -65,6 +67,30 @@ export class Simulation {
       return 1;
     }
     return 1 + 0.1 * Math.sin(t * Math.PI);
+  }
+
+  /** 猫窝距离下次产猫还剩多少秒；非猫窝格返回 null */
+  getNestSpawnCountdown(gx: number, gy: number): number | null {
+    const building = this.grid.get(gx, gy);
+    if (building?.type !== BuildingType.CatNest) {
+      return null;
+    }
+    const elapsed = this.nestSpawnTimers.get(this.cellKey(gx, gy)) ?? 0;
+    return Math.max(0, CAT_NEST_SPAWN_INTERVAL - elapsed);
+  }
+
+  /** 取出包装箱内全部小猫，返回取出的数量 */
+  takeAllCatsFromBox(gx: number, gy: number): number {
+    const building = this.grid.get(gx, gy);
+    if (building?.type !== BuildingType.PackingBox) {
+      return 0;
+    }
+    const count = this.boxCounts[gy][gx];
+    if (count <= 0) {
+      return 0;
+    }
+    this.boxCounts[gy][gx] = 0;
+    return count;
   }
 
   onBuildingPlaced(gx: number, gy: number, building: Building): void {
@@ -132,10 +158,27 @@ export class Simulation {
     }
   }
 
-  private applyMutationGate(cat: Cat): void {
-    const { gx, gy } = getCatCell(cat);
-    if (this.grid.getMutationGate(gx, gy)) {
-      cat.mutated = true;
+  private applyMutationGate(cat: Cat, gx: number, gy: number): void {
+    const gate = this.grid.getMutationGate(gx, gy);
+    if (!gate) {
+      return;
+    }
+
+    const multiplier = getMutationGateMultiplier(gate);
+    cat.mutated = true;
+    cat.quality *= multiplier;
+    cat.pulseAnim = { elapsed: 0 };
+  }
+
+  private updateCatPulseAnims(dt: number): void {
+    for (const cat of this.cats) {
+      if (!cat.pulseAnim) {
+        continue;
+      }
+      cat.pulseAnim.elapsed += dt;
+      if (cat.pulseAnim.elapsed >= CAT_MUTATION_PULSE_DURATION) {
+        cat.pulseAnim = null;
+      }
     }
   }
 
@@ -298,7 +341,7 @@ export class Simulation {
     cat.y = gy + 0.5;
     cat.approachingBox = null;
     this.trackCatCell(cat, gx, gy);
-    this.applyMutationGate(cat);
+    this.applyMutationGate(cat, gx, gy);
   }
 
   /** @returns true if cat should be removed */
@@ -432,7 +475,7 @@ export class Simulation {
         cat.y = nextY;
         const entered = getCatCell(cat);
         this.trackCatCell(cat, entered.gx, entered.gy);
-        this.applyMutationGate(cat);
+        this.applyMutationGate(cat, entered.gx, entered.gy);
         continue;
       }
 

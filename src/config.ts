@@ -22,6 +22,11 @@ export const COLOR_GROUND_BASE = '#cccccc';
 /** 远处行宽相对近处的比例，越小纵深感越强 */
 export const PERSPECTIVE_MIN_SCALE = 0.7;
 export const PLAYER_SPEED = 4;
+/** 玩家精灵在 PNG 内的锚点（底部中心，与 genPlaceholders drawPlayer 一致） */
+export const PLAYER_SPRITE_ANCHOR_X = 0.5;
+export const PLAYER_SPRITE_ANCHOR_Y = 0.81;
+/** 相对格子宽度的绘制缩放，胶囊不占满整格 */
+export const PLAYER_SPRITE_TILE_SCALE = 0.72;
 export const COLOR_LIGHT = '#e8e8e8';
 export const COLOR_DARK = '#b0b0b0';
 export const COLOR_LIGHT_FRONT = '#9a9a9a';
@@ -44,6 +49,12 @@ export const PACK_BOX_PULSE_DURATION = 0.25;
 export const CAT_ARRIVE_EPSILON = 0.04;
 export const CAT_BASE_QUALITY = 1;
 export const CAT_BASE_PRICE = 10;
+/** 变异门默认价格倍率 */
+export const MUTATION_GATE_DEFAULT_MULTIPLIER = 1.5;
+/** 小猫经过变异门时的缩放脉冲时长（秒） */
+export const CAT_MUTATION_PULSE_DURATION = 0.35;
+/** 小猫经过变异门时的缩放峰值 */
+export const CAT_MUTATION_PULSE_PEAK_SCALE = 1.2;
 
 export const COLOR_CAT = '#ffffff';
 export const COLOR_CAT_MUTATED = '#e74c3c';

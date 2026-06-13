@@ -47,8 +47,37 @@ body {
 }
 
 #shop-panel,
+#gold-bar,
 #action-buttons {
   pointer-events: auto;
+}
+
+#gold-bar {
+  position: absolute;
+  top: 2cqmin;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1.2cqmin;
+  padding: 1cqmin 2.4cqmin;
+  background: rgba(0, 0, 0, 0.65);
+  border: 2px solid #555;
+  border-radius: 4px;
+}
+
+.gold-bar-label {
+  font-size: 2.2cqmin;
+  font-weight: bold;
+  color: #f0c040;
+}
+
+.gold-bar-value {
+  font-size: 2.6cqmin;
+  font-weight: bold;
+  color: #fff;
+  min-width: 3ch;
+  text-align: right;
 }
 
 #game {
@@ -206,12 +235,21 @@ body {
   border-color: #2a4a6a;
 }
 
+.action-btn-bag {
+  background: #8b6914;
+  border-color: #5a450d;
+}
+
 .action-btn:hover:not(:disabled):not(.is-greyed) {
   background: #4d8a4d;
 }
 
 .action-btn-rotate:hover:not(:disabled):not(.is-greyed) {
   background: #5a7a9a;
+}
+
+.action-btn-bag:hover:not(:disabled):not(.is-greyed) {
+  background: #a07a18;
 }
 
 .action-btn.is-greyed,

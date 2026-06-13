@@ -12,9 +12,12 @@ import { BuildingType, type Building } from '../game/Building';
 import type { Cat } from '../game/Cat';
 import type { Grid } from '../game/Grid';
 import type { Player } from '../game/Player';
+import { getPlayerFeetGridPos } from '../game/gridUtils';
 import { getSprite } from './assets';
 import { drawBuilding, drawHeldBuildingInCell } from './buildingDraw';
-import { drawBoxCount, drawCat, getCatSortY } from './catDraw';
+import { drawHeldCatStack, drawPlayerSprite } from './playerDraw';
+import { drawBoxCount, drawCat, drawNestSpawnCountdown, getCatSortY } from './catDraw';
+import { drawSellShop } from './shopDraw';
 import {
   computeOrigin,
   getTileFrontCorners,
@@ -24,7 +27,6 @@ import {
 } from './isometric';
 import {
   configureSpriteSmoothing,
-  drawSpriteFlatInCell,
   drawSpriteInIsoTile,
   expandCorners,
 } from './spriteDraw';
@@ -33,11 +35,13 @@ export interface DrawState {
   player: Player;
   grid: Grid;
   heldBuilding: Building | null;
+  heldCatCount: number;
   previewCell: { gx: number; gy: number } | null;
   canPlaceAtPreview: boolean | null;
   cats: readonly Cat[];
   getBoxCount: (gx: number, gy: number) => number;
   getBoxDrawScale: (gx: number, gy: number) => number;
+  getNestSpawnCountdown: (gx: number, gy: number) => number | null;
 }
 
 type TileHighlight = 'valid' | 'invalid' | null;
@@ -141,6 +145,23 @@ export class Renderer {
           this.origin,
         );
       }
+
+      if (building?.type === BuildingType.CatNest) {
+        const countdown = state.getNestSpawnCountdown(tile.gx, tile.gy);
+        if (countdown !== null) {
+          drawNestSpawnCountdown(
+            this.ctx,
+            tile.gx,
+            tile.gy,
+            countdown,
+            this.origin,
+          );
+        }
+      }
+
+      if (state.grid.isShop(tile.gx, tile.gy)) {
+        drawSellShop(this.ctx, tile.gx, tile.gy, this.origin);
+      }
     }
 
     const sortedCats = [...state.cats].sort(
@@ -150,7 +171,7 @@ export class Renderer {
       drawCat(this.ctx, cat, this.origin);
     }
 
-    this.drawPlayer(state.player, state.heldBuilding);
+    this.drawPlayer(state.player, state.heldBuilding, state.heldCatCount);
   }
 
   private getTileHighlight(gx: number, gy: number, state: DrawState): TileHighlight {
@@ -181,15 +202,13 @@ export class Renderer {
     }
   }
 
-  private drawPlayer(player: Player, heldBuilding: Building | null): void {
-    const cellGx = player.x - 0.5;
-    const cellGy = player.y - 0.5;
-    const playerSprite = getSprite('player');
-
-    drawSpriteFlatInCell(this.ctx, playerSprite, cellGx, cellGy, this.origin);
+  private drawPlayer(player: Player, heldBuilding: Building | null, heldCatCount: number): void {
+    const { gx, gy } = getPlayerFeetGridPos(player);
+    drawPlayerSprite(this.ctx, getSprite('player'), player, this.origin);
+    drawHeldCatStack(this.ctx, player, heldCatCount, this.origin);
 
     if (heldBuilding) {
-      drawHeldBuildingInCell(this.ctx, cellGx, cellGy, this.origin, heldBuilding);
+      drawHeldBuildingInCell(this.ctx, gx, gy, this.origin, heldBuilding);
     }
   }
 

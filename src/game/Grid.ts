@@ -4,6 +4,7 @@ import { BuildingType, type Building } from './Building';
 export class Grid {
   private cells: (Building | null)[][];
   private mutationGates: (Building | null)[][];
+  private shopCells = new Set<string>();
 
   constructor() {
     this.cells = Array.from({ length: GRID_SIZE }, () =>
@@ -66,7 +67,29 @@ export class Grid {
   }
 
   isEmpty(gx: number, gy: number): boolean {
-    return this.get(gx, gy) === null;
+    return this.get(gx, gy) === null && !this.isShop(gx, gy);
+  }
+
+  markShop(gx: number, gy: number): void {
+    if (!this.inBounds(gx, gy)) {
+      return;
+    }
+    this.shopCells.add(this.cellKey(gx, gy));
+  }
+
+  isShop(gx: number, gy: number): boolean {
+    return this.shopCells.has(this.cellKey(gx, gy));
+  }
+
+  forEachShop(callback: (gx: number, gy: number) => void): void {
+    for (const key of this.shopCells) {
+      const [gx, gy] = key.split(',').map(Number);
+      callback(gx, gy);
+    }
+  }
+
+  private cellKey(gx: number, gy: number): string {
+    return `${gx},${gy}`;
   }
 
   hasConveyor(gx: number, gy: number): boolean {

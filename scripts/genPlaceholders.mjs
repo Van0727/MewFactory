@@ -298,6 +298,21 @@ function fillTri(c, x0, y0, x1, y1, x2, y2, r, g, b) {
   }
 }
 
+function drawSellShop(w, h) {
+  const c = createCanvas(w, h, 218, 185, 90);
+  const cx = w / 2;
+  const baseY = h * 0.72;
+  c.fillRect(w * 0.12, baseY, w * 0.76, h * 0.18, 160, 120, 60);
+  c.fillRect(w * 0.18, h * 0.28, w * 0.64, h * 0.44, 240, 210, 120);
+  c.fillRect(w * 0.18, h * 0.22, w * 0.64, h * 0.08, 200, 60, 60);
+  c.fillRect(w * 0.1, h * 0.22, w * 0.08, h * 0.5, 200, 60, 60);
+  c.fillRect(w * 0.82, h * 0.22, w * 0.08, h * 0.5, 200, 60, 60);
+  c.drawLabel('卖', cx, h * 0.48, 80, 40, 20);
+  c.fillCircle(cx, h * 0.62, w * 0.09, 255, 215, 0);
+  c.drawLabel('$', cx, h * 0.62, 120, 90, 10);
+  return c;
+}
+
 function drawPlayer(w, h) {
   const c = createCanvas(w, h, 74, 144, 217);
   const cx = w / 2;
@@ -338,6 +353,7 @@ const assets = [
   ['buildings/conveyor.png', drawBuilding(CELL_SIZE, CELL_SIZE, [107, 140, 174], 'BELT', true)],
   ['buildings/packing_box.png', drawRectBuilding(CELL_SIZE, CELL_SIZE, [139, 115, 85], 'BOX')],
   ['buildings/mutation_gate.png', drawBuilding(CELL_SIZE, CELL_SIZE, [155, 89, 182], 'GATE', true)],
+  ['buildings/sell_shop.png', drawSellShop(CELL_SIZE, CELL_SIZE)],
   ['cats/cat_normal.png', drawCat(CELL_SIZE, CELL_SIZE, [255, 255, 255])],
   ['cats/cat_mutated.png', drawCat(CELL_SIZE, CELL_SIZE, [231, 76, 60])],
   ['player/player.png', drawPlayer(CELL_SIZE, CELL_SIZE)],

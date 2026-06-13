@@ -1,4 +1,5 @@
-import { getUiIconUrl, getUiPickupUrl } from '../render/assets';
+import { getUiIconUrl, getUiPickupUrl, getCatSpriteUrl } from '../render/assets';
+import type { HeldCats } from '../game/HeldCats';
 import type { Inventory, InventorySlot } from '../game/Inventory';
 import { FIRST_INVENTORY_SLOT, INVENTORY_SLOT_COUNT, PICKUP_SLOT_INDEX } from '../game/Inventory';
 
@@ -10,9 +11,11 @@ export class Hotbar {
   private selectedIndex = PICKUP_SLOT_INDEX;
   private slotListeners: Array<(index: number) => void> = [];
   private inventory: Inventory;
+  private heldCats: HeldCats;
 
-  constructor(container: HTMLElement, inventory: Inventory) {
+  constructor(container: HTMLElement, inventory: Inventory, heldCats: HeldCats) {
     this.inventory = inventory;
+    this.heldCats = heldCats;
     container.innerHTML = '';
 
     for (let i = 0; i < SLOT_COUNT; i++) {
@@ -32,12 +35,10 @@ export class Hotbar {
       }
       slot.appendChild(icon);
 
-      if (i !== PICKUP_SLOT_INDEX) {
-        const badge = document.createElement('span');
-        badge.className = 'count-badge';
-        badge.style.display = 'none';
-        slot.appendChild(badge);
-      }
+      const badge = document.createElement('span');
+      badge.className = 'count-badge';
+      badge.style.display = 'none';
+      slot.appendChild(badge);
 
       slot.addEventListener('click', () => {
         this.select(i);
@@ -71,6 +72,20 @@ export class Hotbar {
   }
 
   refresh(): void {
+    const pickupSlot = this.slots[PICKUP_SLOT_INDEX];
+    const pickupIcon = pickupSlot.querySelector('.pickup-icon') as HTMLElement;
+    const pickupBadge = pickupSlot.querySelector('.count-badge') as HTMLElement;
+    const heldCount = this.heldCats.getCount();
+
+    if (heldCount > 0) {
+      pickupIcon.style.backgroundImage = `url(${getCatSpriteUrl()})`;
+      pickupBadge.textContent = String(heldCount);
+      pickupBadge.style.display = '';
+    } else {
+      pickupIcon.style.backgroundImage = `url(${getUiPickupUrl()})`;
+      pickupBadge.style.display = 'none';
+    }
+
     for (let i = FIRST_INVENTORY_SLOT; i < SLOT_COUNT; i++) {
       const slotEl = this.slots[i];
       const icon = slotEl.querySelector('.building-icon') as HTMLElement;

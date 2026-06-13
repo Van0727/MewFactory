@@ -1,7 +1,13 @@
+本地终端运行试玩：npm.cmd run dev
+在线试玩链接：https://van0727.github.io/MewFactory/
+在线预设链接：https://van0727.github.io/MewFactory/?demo
+
 分阶段开发（按优先级）
 第 1 阶段：能看见、能走（1~2 天）
 初始化 Vite 项目
 画 10×10 灰白棋盘（等距或简单俯视都可，文档要求 45°）
+
+
 WASD 移动玩家，限制在格子内
 底部画出 10 格快捷栏 UI（先占位）
 验收：能在格子上走动，视角符合 2.5D。

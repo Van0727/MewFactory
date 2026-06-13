@@ -19,9 +19,9 @@ const HOTBAR_KEYS: Record<string, number> = {
 };
 
 const MOVEMENT_KEYS = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright']);
-const ACTION_KEYS = new Set(['e', 'r']);
+const ACTION_KEYS = new Set(['e', 'r', ' ']);
 
-export type ActionKey = 'e' | 'r';
+export type ActionKey = 'e' | 'r' | ' ';
 
 export class InputManager {
   private movement: MovementState = {

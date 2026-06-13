@@ -189,6 +189,18 @@ export function drawSquareOnIsoQuad(
   ctx.restore();
 }
 
+/** 以四边形中心为原点缩放顶点，使精灵整体变大而不被格子裁切 */
+function scaleCornersFromCenter(
+  corners: [number, number][],
+  scale: number,
+): [number, number][] {
+  if (scale === 1) {
+    return corners;
+  }
+  const { cx, cy } = getCellAnchor(corners);
+  return corners.map(([x, y]) => [cx + (x - cx) * scale, cy + (y - cy) * scale]);
+}
+
 function borrowOffscreen(size: number): HTMLCanvasElement {
   const key = `sq${size}`;
   let canvas = offscreenPool.get(key);
@@ -231,6 +243,9 @@ export interface DrawSpriteInCellOptions {
   rotation?: number;
   drawScale?: number;
   bleedPx?: number;
+  /** 源图归一化锚点 (0–1)，默认 0.5 为图像中心 */
+  anchorX?: number;
+  anchorY?: number;
 }
 
 export function drawSpriteInCell(
@@ -243,8 +258,9 @@ export function drawSpriteInCell(
 ): void {
   const corners = getTileTopCorners(gx, gy, origin);
   const { rotation = 0, drawScale = 1, bleedPx = TILE_BLEED_PX } = options;
-  const source = prepareSquareSource(img, rotation, drawScale);
-  drawSquareOnIsoQuad(ctx, source, corners, bleedPx);
+  const source = prepareSquareSource(img, rotation, 1);
+  const quad = scaleCornersFromCenter(corners, drawScale);
+  drawSquareOnIsoQuad(ctx, source, quad, bleedPx);
 }
 
 function getFlatSpriteSize(gx: number, gy: number, origin: IsoOrigin): number {
@@ -265,13 +281,20 @@ export function drawSpriteFlatInCell(
 ): void {
   const { cx, cy } = getGridCellAnchor(gx, gy, origin);
   const size = getFlatSpriteSize(gx, gy, origin);
-  const { rotation = 0, drawScale = 1 } = options;
+  const {
+    rotation = 0,
+    drawScale = 1,
+    anchorX = 0.5,
+    anchorY = 0.5,
+  } = options;
   const source = prepareSquareSource(img, rotation, drawScale);
   const drawSize = size * drawScale;
+  const anchorPxX = drawSize * anchorX;
+  const anchorPxY = drawSize * anchorY;
 
   ctx.save();
   configureSpriteSmoothing(ctx);
-  ctx.drawImage(source, cx - drawSize / 2, cy - drawSize / 2, drawSize, drawSize);
+  ctx.drawImage(source, cx - anchorPxX, cy - anchorPxY, drawSize, drawSize);
   ctx.restore();
 }
 

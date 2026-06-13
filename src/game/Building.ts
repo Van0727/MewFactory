@@ -16,10 +16,14 @@ export const Direction = {
 
 export type Direction = (typeof Direction)[keyof typeof Direction];
 
+import { MUTATION_GATE_DEFAULT_MULTIPLIER } from '../config';
+
 export interface Building {
   type: BuildingType;
   direction: Direction;
   level: number;
+  /** 变异门价格倍率（仅 MutationGate） */
+  priceMultiplier?: number;
 }
 
 const DIRECTION_ROTATION: Direction[] = [
@@ -47,7 +51,15 @@ export function createBuilding(
   level = 1,
   direction: Direction = Direction.Left,
 ): Building {
-  return { type, direction, level };
+  const building: Building = { type, direction, level };
+  if (type === BuildingType.MutationGate) {
+    building.priceMultiplier = MUTATION_GATE_DEFAULT_MULTIPLIER;
+  }
+  return building;
+}
+
+export function getMutationGateMultiplier(gate: Building): number {
+  return gate.priceMultiplier ?? MUTATION_GATE_DEFAULT_MULTIPLIER;
 }
 
 export function getBuildingLabel(type: BuildingType): string {

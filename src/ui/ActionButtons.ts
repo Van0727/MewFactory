@@ -1,4 +1,4 @@
-export type ActionType = 'place' | 'rotate' | 'pickup';
+export type ActionType = 'place' | 'rotate' | 'pickup' | 'bag';
 
 export interface PlaceModeOptions {
   rotateEnabled: boolean;
@@ -12,6 +12,7 @@ export class ActionButtons {
   private placeBtn: HTMLButtonElement;
   private rotateBtn: HTMLButtonElement;
   private pickupBtn: HTMLButtonElement;
+  private bagBtn: HTMLButtonElement;
   private listeners: Array<(action: ActionType) => void> = [];
 
   constructor(container: HTMLElement) {
@@ -29,10 +30,12 @@ export class ActionButtons {
     this.placeBtn = this.createButton('放下 (E)', 'place');
     this.rotateBtn = this.createButton('旋转 (R)', 'rotate', 'action-btn-rotate');
     this.pickupBtn = this.createButton('拿起 (E)', 'pickup');
+    this.bagBtn = this.createButton('装袋 (Space)', 'bag', 'action-btn-bag');
 
     this.btnRow.appendChild(this.placeBtn);
     this.btnRow.appendChild(this.rotateBtn);
     this.btnRow.appendChild(this.pickupBtn);
+    this.btnRow.appendChild(this.bagBtn);
 
     this.hideAll();
   }
@@ -59,11 +62,23 @@ export class ActionButtons {
     this.container.style.display = 'flex';
   }
 
+  setBagButton(visible: boolean, enabled: boolean): void {
+    this.bagBtn.style.display = visible ? '' : 'none';
+    this.bagBtn.disabled = !enabled;
+    this.bagBtn.classList.toggle('is-greyed', visible && !enabled);
+    if (visible) {
+      this.container.style.display = 'flex';
+    }
+  }
+
   hideAll(): void {
     this.hintEl.style.display = 'none';
     this.placeBtn.style.display = 'none';
     this.rotateBtn.style.display = 'none';
     this.pickupBtn.style.display = 'none';
+    this.bagBtn.style.display = 'none';
+    this.bagBtn.disabled = true;
+    this.bagBtn.classList.remove('is-greyed');
     this.container.style.display = 'none';
   }
 
