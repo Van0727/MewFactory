@@ -4,26 +4,38 @@ import { Renderer } from './render/Renderer';
 import './style.css';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement | null;
-const hotbar = document.getElementById('hotbar') as HTMLElement | null;
+const hotbar = document.getElementById('hotbar-slots') as HTMLElement | null;
+const rebirthPanel = document.getElementById('rebirth-panel') as HTMLElement | null;
 const actionButtons = document.getElementById('action-buttons') as HTMLElement | null;
-const shopPanel = document.getElementById('shop-panel') as HTMLElement | null;
+const buildingShopPanel = document.getElementById('building-shop-panel') as HTMLElement | null;
 const goldBar = document.getElementById('gold-bar') as HTMLElement | null;
+const uiOverlay = document.getElementById('ui-overlay') as HTMLElement | null;
 
-if (!canvas || !hotbar || !actionButtons || !shopPanel || !goldBar) {
+if (!canvas || !hotbar || !rebirthPanel || !actionButtons || !buildingShopPanel || !goldBar || !uiOverlay) {
   throw new Error('Missing required DOM elements');
 }
 
 const gameCanvas = canvas;
 const hotbarEl = hotbar;
+const rebirthPanelEl = rebirthPanel;
 const actionButtonsEl = actionButtons;
-const shopPanelEl = shopPanel;
+const buildingShopPanelEl = buildingShopPanel;
 const goldBarEl = goldBar;
+const uiOverlayEl = uiOverlay;
 const loadingRenderer = new Renderer(gameCanvas);
 loadingRenderer.showLoading();
 
 async function bootstrap(): Promise<void> {
   await loadAssets();
-  const game = new Game(gameCanvas, hotbarEl, actionButtonsEl, shopPanelEl, goldBarEl);
+  const game = new Game(
+    gameCanvas,
+    hotbarEl,
+    actionButtonsEl,
+    buildingShopPanelEl,
+    goldBarEl,
+    uiOverlayEl,
+    rebirthPanelEl,
+  );
   game.start();
 }
 

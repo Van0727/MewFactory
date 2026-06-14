@@ -72,4 +72,8 @@ export class Inventory {
     const slot = this.getSlot(slotIndex);
     return slot !== null && slot.count > 0;
   }
+
+  clear(): void {
+    this.slots = Array.from({ length: INVENTORY_SLOT_COUNT }, () => null);
+  }
 }

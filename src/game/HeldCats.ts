@@ -12,6 +12,10 @@ export class HeldCats {
     return count;
   }
 
+  clear(): void {
+    this.count = 0;
+  }
+
   add(count: number): void {
     if (count > 0) {
       this.count += count;

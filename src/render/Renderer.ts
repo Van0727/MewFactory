@@ -18,6 +18,7 @@ import { drawBuilding, drawHeldBuildingInCell } from './buildingDraw';
 import { drawHeldCatStack, drawPlayerSprite } from './playerDraw';
 import { drawBoxCount, drawCat, drawNestSpawnCountdown, getCatSortY } from './catDraw';
 import { drawSellShop } from './shopDraw';
+import { drawBuildingShop } from './buildingShopDraw';
 import {
   computeOrigin,
   getTileFrontCorners,
@@ -161,6 +162,11 @@ export class Renderer {
 
       if (state.grid.isShop(tile.gx, tile.gy)) {
         drawSellShop(this.ctx, tile.gx, tile.gy, this.origin);
+      }
+
+      const buildingShop = state.grid.getBuildingShop(tile.gx, tile.gy);
+      if (buildingShop) {
+        drawBuildingShop(this.ctx, tile.gx, tile.gy, buildingShop, this.origin);
       }
     }
 

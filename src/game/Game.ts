@@ -3,8 +3,11 @@ import { Renderer } from '../render/Renderer';
 import { CAT_BASE_PRICE } from '../config';
 import { ActionButtons } from '../ui/ActionButtons';
 import { GoldBar } from '../ui/GoldBar';
+import { GoldSellFx } from '../ui/GoldSellFx';
 import { Hotbar } from '../ui/Hotbar';
-import { ShopPanel } from '../ui/ShopPanel';
+import { BuildingShopPanel } from '../ui/BuildingShopPanel';
+import { RebirthPanel } from '../ui/RebirthPanel';
+import { RebirthToast } from '../ui/RebirthToast';
 import {
   BuildingType,
   rotateDirection,
@@ -17,6 +20,7 @@ import { getPlayerCell } from './gridUtils';
 import { HeldCats } from './HeldCats';
 import { Inventory, PICKUP_SLOT_INDEX } from './Inventory';
 import { PlayerGold } from './PlayerGold';
+import { RebirthState } from './RebirthState';
 import { canPlaceBuilding } from './placement';
 import { Player } from './Player';
 import { Simulation } from './Simulation';
@@ -34,7 +38,12 @@ export class Game {
   private inventory = new Inventory();
   private heldCats = new HeldCats();
   private playerGold = new PlayerGold();
+  private rebirthState = new RebirthState();
   private goldBar: GoldBar;
+  private goldSellFx: GoldSellFx;
+  private rebirthPanel: RebirthPanel;
+  private rebirthToast: RebirthToast;
+  private buildingShopPanel: BuildingShopPanel;
   private mode: InteractionMode = 'pickup';
   private heldBuilding: Building | null = null;
   private heldSlotIndex: number | null = null;
@@ -49,13 +58,28 @@ export class Game {
     actionButtonsContainer: HTMLElement,
     shopContainer: HTMLElement,
     goldBarContainer: HTMLElement,
+    uiOverlay: HTMLElement,
+    rebirthPanelContainer: HTMLElement,
   ) {
     this.input = new InputManager();
     this.renderer = new Renderer(canvas);
     this.hotbar = new Hotbar(hotbarContainer, this.inventory, this.heldCats);
     this.actionButtons = new ActionButtons(actionButtonsContainer);
     this.goldBar = new GoldBar(goldBarContainer, this.playerGold);
-    new ShopPanel(shopContainer, this.inventory, () => this.onInventoryChange());
+    this.goldSellFx = new GoldSellFx(canvas, uiOverlay, this.goldBar);
+    this.rebirthToast = new RebirthToast(uiOverlay);
+    this.rebirthPanel = new RebirthPanel(
+      rebirthPanelContainer,
+      this.rebirthState,
+      this.playerGold,
+      () => this.tryRebirth(),
+    );
+    this.buildingShopPanel = new BuildingShopPanel(
+      shopContainer,
+      this.inventory,
+      this.playerGold,
+      () => this.onInventoryChange(),
+    );
 
     this.input.onHotbarSelect((index) => {
       this.hotbar.select(index);
@@ -81,10 +105,6 @@ export class Game {
         } else if (this.mode === 'pickup') {
           this.handleAction('pickup');
         }
-        return;
-      }
-      if (key === ' ') {
-        this.handleAction('bag');
       }
     });
 
@@ -94,6 +114,10 @@ export class Game {
     this.hotbar.select(PICKUP_SLOT_INDEX);
     this.updateActionButtons();
 
+    this.seedWorld();
+  }
+
+  private seedWorld(): void {
     seedStarterPipeline(this.grid, this.simulation);
     seedFixedShops(this.grid);
   }
@@ -129,6 +153,8 @@ export class Game {
 
     this.player.update(dt, this.input.getMovement());
     this.checkShopSell();
+    this.autoBagFromBoxUnderPlayer();
+    this.goldSellFx.update(dt);
     this.updateActionButtons();
 
     this.simulation.update(dt);
@@ -182,7 +208,7 @@ export class Game {
     this.updateActionButtons();
   }
 
-  private handleAction(action: 'place' | 'rotate' | 'pickup' | 'bag'): void {
+  private handleAction(action: 'place' | 'rotate' | 'pickup'): void {
     switch (action) {
       case 'place':
         this.placeBuilding();
@@ -192,9 +218,6 @@ export class Game {
         break;
       case 'pickup':
         this.pickupBuilding();
-        break;
-      case 'bag':
-        this.bagCats();
         break;
     }
   }
@@ -274,6 +297,13 @@ export class Game {
     if (this.grid.isShop(gx, gy)) {
       this.sellAllHeldCats();
     }
+
+    const buildingShop = this.grid.getBuildingShop(gx, gy);
+    if (buildingShop) {
+      this.buildingShopPanel.open(buildingShop);
+    } else {
+      this.buildingShopPanel.close();
+    }
   }
 
   private sellAllHeldCats(): void {
@@ -281,13 +311,37 @@ export class Game {
     if (count <= 0) {
       return;
     }
-    this.playerGold.add(count * CAT_BASE_PRICE);
+    const amount = Math.round(
+      count * CAT_BASE_PRICE * this.rebirthState.getGoldMultiplier(),
+    );
+    const { gx, gy } = getPlayerCell(this.player);
     this.hotbar.refresh();
-    this.goldBar.refresh();
     this.updateActionButtons();
+    this.goldSellFx.play(gx, gy, amount, () => {
+      this.playerGold.add(amount);
+      this.goldBar.refresh();
+      this.goldBar.pulseReceive();
+      this.rebirthPanel.refresh();
+      this.buildingShopPanel.refresh();
+    });
   }
 
-  private bagCats(): void {
+  private tryRebirth(): void {
+    const cost = this.rebirthState.getRebirthCost();
+    if (!this.playerGold.spend(cost)) {
+      this.rebirthPanel.refresh();
+      return;
+    }
+
+    const newMultiplier = this.rebirthState.getNextGoldMultiplier();
+    this.rebirthState.performRebirth();
+    this.rebirthToast.show(newMultiplier);
+    this.goldBar.refresh();
+    this.rebirthPanel.refresh();
+    this.buildingShopPanel.refresh();
+  }
+
+  private autoBagFromBoxUnderPlayer(): void {
     const { gx, gy } = getPlayerCell(this.player);
     const taken = this.simulation.takeAllCatsFromBox(gx, gy);
     if (taken <= 0) {
@@ -314,8 +368,6 @@ export class Game {
 
   private updateActionButtons(): void {
     const { gx, gy } = getPlayerCell(this.player);
-    const onPackingBox = this.grid.get(gx, gy)?.type === BuildingType.PackingBox;
-    const boxHasCats = onPackingBox && this.simulation.getBoxCount(gx, gy) > 0;
 
     if (this.mode === 'place' && this.heldBuilding) {
       const isMutationGate = this.heldBuilding.type === BuildingType.MutationGate;
@@ -323,22 +375,14 @@ export class Game {
         rotateEnabled: !isMutationGate,
         hint: isMutationGate ? '可放置在传送带上' : '可放置在空地上',
       });
-      this.actionButtons.setBagButton(onPackingBox, boxHasCats);
       return;
     }
 
     if (this.mode === 'pickup') {
       if (this.grid.hasPickupTarget(gx, gy)) {
         this.actionButtons.showPickupMode();
-        this.actionButtons.setBagButton(onPackingBox, boxHasCats);
         return;
       }
-    }
-
-    if (onPackingBox) {
-      this.actionButtons.hideAll();
-      this.actionButtons.setBagButton(true, boxHasCats);
-      return;
     }
 
     this.actionButtons.hideAll();
@@ -346,6 +390,7 @@ export class Game {
 
   private onInventoryChange(): void {
     this.hotbar.refresh();
+    this.buildingShopPanel.refresh();
 
     if (
       this.mode === 'place' &&

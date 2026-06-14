@@ -56,5 +56,32 @@ export const CAT_MUTATION_PULSE_DURATION = 0.35;
 /** 小猫经过变异门时的缩放峰值 */
 export const CAT_MUTATION_PULSE_PEAK_SCALE = 1.2;
 
+/** 出售金币飞出动画：弹出阶段时长（秒） */
+export const GOLD_SELL_POP_DURATION = 0.45;
+/** 出售金币飞出动画：飞向顶部 UI 时长（秒） */
+export const GOLD_SELL_FLY_DURATION = 0.55;
+export const GOLD_SELL_COIN_COUNT = 10;
+
+/** 重生：初始金币产出倍率 */
+export const REBIRTH_INITIAL_GOLD_MULTIPLIER = 1;
+/** 每次重生增加的金币产出倍率 */
+export const REBIRTH_GOLD_MULTIPLIER_STEP = 0.5;
+/** 重生基础价格（实际价格 × 已重生次数+1） */
+export const REBIRTH_BASE_COST = 100;
+/** 重生成功提示显示时长（秒） */
+export const REBIRTH_TOAST_DURATION = 1;
+
+/** 建筑商店可售最高等级 */
+export const BUILDING_SHOP_MAX_LEVEL = 3;
+export const BUILDING_SHOP_BASE_PRICE: Record<
+  'CatNest' | 'Conveyor' | 'PackingBox' | 'MutationGate',
+  number
+> = {
+  CatNest: 25,
+  Conveyor: 20,
+  PackingBox: 30,
+  MutationGate: 35,
+};
+
 export const COLOR_CAT = '#ffffff';
 export const COLOR_CAT_MUTATED = '#e74c3c';

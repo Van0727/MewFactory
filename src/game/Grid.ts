@@ -1,10 +1,12 @@
 import { GRID_SIZE } from '../config';
 import { BuildingType, type Building } from './Building';
+import type { BuildingShopKind } from './buildingShopCatalog';
 
 export class Grid {
   private cells: (Building | null)[][];
   private mutationGates: (Building | null)[][];
   private shopCells = new Set<string>();
+  private buildingShopCells = new Map<string, BuildingShopKind>();
 
   constructor() {
     this.cells = Array.from({ length: GRID_SIZE }, () =>
@@ -67,7 +69,31 @@ export class Grid {
   }
 
   isEmpty(gx: number, gy: number): boolean {
-    return this.get(gx, gy) === null && !this.isShop(gx, gy);
+    return (
+      this.get(gx, gy) === null && !this.isShop(gx, gy) && !this.isBuildingShop(gx, gy)
+    );
+  }
+
+  markBuildingShop(gx: number, gy: number, kind: BuildingShopKind): void {
+    if (!this.inBounds(gx, gy)) {
+      return;
+    }
+    this.buildingShopCells.set(this.cellKey(gx, gy), kind);
+  }
+
+  getBuildingShop(gx: number, gy: number): BuildingShopKind | null {
+    return this.buildingShopCells.get(this.cellKey(gx, gy)) ?? null;
+  }
+
+  isBuildingShop(gx: number, gy: number): boolean {
+    return this.buildingShopCells.has(this.cellKey(gx, gy));
+  }
+
+  forEachBuildingShop(callback: (gx: number, gy: number, kind: BuildingShopKind) => void): void {
+    for (const [key, kind] of this.buildingShopCells.entries()) {
+      const [gx, gy] = key.split(',').map(Number);
+      callback(gx, gy, kind);
+    }
   }
 
   markShop(gx: number, gy: number): void {

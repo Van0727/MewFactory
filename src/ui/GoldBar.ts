@@ -26,4 +26,25 @@ export class GoldBar {
   refresh(): void {
     this.valueEl.textContent = String(this.gold.getAmount());
   }
+
+  /** ui-overlay 坐标系下的回收目标点 */
+  getFlyTarget(overlay: HTMLElement): { x: number; y: number } {
+    const overlayRect = overlay.getBoundingClientRect();
+    const barRect = this.container.getBoundingClientRect();
+    return {
+      x: barRect.left + barRect.width / 2 - overlayRect.left,
+      y: barRect.top + barRect.height / 2 - overlayRect.top,
+    };
+  }
+
+  pulseReceive(): void {
+    this.container.classList.remove('gold-bar-receive');
+    void this.container.offsetWidth;
+    this.container.classList.add('gold-bar-receive');
+    this.container.addEventListener(
+      'animationend',
+      () => this.container.classList.remove('gold-bar-receive'),
+      { once: true },
+    );
+  }
 }

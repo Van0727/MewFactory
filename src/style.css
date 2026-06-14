@@ -46,9 +46,10 @@ body {
   z-index: 10;
 }
 
-#shop-panel,
+#building-shop-panel,
 #gold-bar,
-#action-buttons {
+#action-buttons,
+#rebirth-panel {
   pointer-events: auto;
 }
 
@@ -80,6 +81,52 @@ body {
   text-align: right;
 }
 
+.gold-sell-fx-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 25;
+}
+
+.gold-sell-label {
+  position: absolute;
+  font-weight: bold;
+  font-size: clamp(20px, 4.5cqmin, 36px);
+  color: #ffe566;
+  text-shadow:
+    0 0 10px rgba(255, 210, 50, 0.9),
+    0 2px 4px rgba(0, 0, 0, 0.85);
+  white-space: nowrap;
+  will-change: transform, left, top, opacity;
+}
+
+.gold-sell-coin {
+  position: absolute;
+  width: clamp(8px, 1.6cqmin, 14px);
+  height: clamp(8px, 1.6cqmin, 14px);
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #fff9c0, #ffd700 45%, #c8960c);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.85);
+  will-change: transform, left, top, opacity;
+}
+
+#gold-bar.gold-bar-receive {
+  animation: gold-bar-receive 0.35s ease-out;
+}
+
+@keyframes gold-bar-receive {
+  0% {
+    transform: translateX(-50%) scale(1);
+  }
+  45% {
+    transform: translateX(-50%) scale(1.14);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+}
+
 #game {
   display: block;
   width: 100%;
@@ -87,6 +134,7 @@ body {
 }
 
 #hotbar {
+  position: relative;
   display: flex;
   gap: 0.6cqmin;
   padding: 1.2cqmin 1.8cqmin;
@@ -96,6 +144,102 @@ body {
   min-height: 0;
   align-items: center;
   justify-content: center;
+}
+
+#hotbar-slots {
+  display: flex;
+  gap: 0.6cqmin;
+  align-items: center;
+  justify-content: center;
+}
+
+#rebirth-panel {
+  position: absolute;
+  left: 1.8cqmin;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.rebirth-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5cqmin;
+  padding: 0.8cqmin 1.2cqmin;
+  background: rgba(0, 0, 0, 0.65);
+  border: 2px solid #555;
+  border-radius: 4px;
+  min-width: 14cqmin;
+}
+
+.rebirth-title {
+  font-size: 2cqmin;
+  font-weight: bold;
+  color: #ccc;
+  text-align: center;
+}
+
+.rebirth-price {
+  font-size: 1.8cqmin;
+  color: #f0c040;
+  text-align: center;
+}
+
+.rebirth-multiplier {
+  font-size: 1.7cqmin;
+  color: #aaa;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.rebirth-btn {
+  padding: 0.7cqmin 1.2cqmin;
+  font-size: 1.9cqmin;
+  font-family: inherit;
+  font-weight: bold;
+  color: #bbb;
+  background: #666;
+  border: 2px solid #555;
+  border-radius: 3px;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.rebirth-btn.is-affordable {
+  color: #fff;
+  background: #3d7a3d;
+  border-color: #2a5a2a;
+  cursor: pointer;
+  opacity: 1;
+}
+
+.rebirth-btn.is-affordable:hover {
+  background: #4d8a4d;
+}
+
+.rebirth-toast {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.85);
+  padding: 2cqmin 4cqmin;
+  font-size: clamp(22px, 5.5cqmin, 42px);
+  font-weight: bold;
+  color: #ffe566;
+  text-align: center;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.75);
+  border: 3px solid #f0c040;
+  border-radius: 8px;
+  text-shadow: 0 0 12px rgba(255, 210, 50, 0.85);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 30;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+}
+
+.rebirth-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .hotbar-slot {
@@ -153,6 +297,70 @@ body {
   text-shadow: 1px 1px 0 #000;
   pointer-events: none;
   user-select: none;
+}
+
+#building-shop-panel {
+  position: absolute;
+  top: 2cqmin;
+  right: 2cqmin;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8cqmin;
+  padding: 1.6cqmin;
+  background: rgba(0, 0, 0, 0.65);
+  border: 2px solid #555;
+  border-radius: 4px;
+  min-width: 18cqmin;
+}
+
+#building-shop-panel.is-hidden {
+  display: none;
+}
+
+.building-shop-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6cqmin;
+}
+
+.building-shop-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.8cqmin;
+  align-items: center;
+}
+
+.building-shop-label {
+  font-size: 1.9cqmin;
+  color: #eee;
+}
+
+.building-shop-price {
+  font-size: 1.8cqmin;
+  color: #f0c040;
+  white-space: nowrap;
+}
+
+.building-shop-buy {
+  padding: 0.5cqmin 1cqmin;
+  font-size: 1.8cqmin;
+}
+
+.building-shop-buy.is-affordable {
+  background: #3d7a3d;
+  border-color: #2a5a2a;
+}
+
+.building-shop-buy.is-affordable:hover {
+  background: #4d8a4d;
+}
+
+.building-shop-buy:disabled {
+  background: #666;
+  border-color: #555;
+  color: #bbb;
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 #shop-panel {
