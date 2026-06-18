@@ -19,6 +19,7 @@ import { drawHeldCatStack, drawPlayerSprite } from './playerDraw';
 import { drawBoxCount, drawCat, drawNestSpawnCountdown, getCatSortY } from './catDraw';
 import { drawSellShop } from './shopDraw';
 import { drawBuildingShop } from './buildingShopDraw';
+import { getCatBoxCapacity } from '../data/buildings';
 import {
   computeOrigin,
   getTileFrontCorners,
@@ -143,6 +144,7 @@ export class Renderer {
           tile.gx,
           tile.gy,
           state.getBoxCount(tile.gx, tile.gy),
+          getCatBoxCapacity(building.level),
           this.origin,
         );
       }

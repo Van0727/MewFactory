@@ -1,13 +1,17 @@
 import {
   CAT_ARRIVE_EPSILON,
-  CAT_NEST_SPAWN_INTERVAL,
   CAT_MUTATION_PULSE_DURATION,
-  CONVEYOR_SPEED,
   GRID_SIZE,
-  PACKING_BOX_CAPACITY,
   PACK_BOX_PULSE_DURATION,
 } from '../config';
-import { BuildingType, Direction, getMutationGateMultiplier, type Building } from './Building';
+import {
+  getCatHouseBasePrice,
+  getCatHouseSpawnInterval,
+  getCatBoxCapacity,
+  getConveyorSpeed,
+  getDoorMultiplier,
+} from '../data/buildings';
+import { BuildingType, Direction, type Building } from './Building';
 import { createCat, getBoxCenter, getCatCell, type Cat } from './Cat';
 import {
   ALL_DIRECTIONS,
@@ -28,6 +32,8 @@ type CrossAction =
 export class Simulation {
   private cats: Cat[] = [];
   private boxCounts: number[][];
+  /** 每格包装箱累计的小猫总价值 */
+  private boxValues: number[][];
   private boxPulseElapsed = new Map<string, number>();
   private nestSpawnTimers = new Map<string, number>();
   private grid: Grid;
@@ -35,6 +41,9 @@ export class Simulation {
   constructor(grid: Grid) {
     this.grid = grid;
     this.boxCounts = Array.from({ length: GRID_SIZE }, () =>
+      Array.from({ length: GRID_SIZE }, () => 0),
+    );
+    this.boxValues = Array.from({ length: GRID_SIZE }, () =>
       Array.from({ length: GRID_SIZE }, () => 0),
     );
   }
@@ -76,32 +85,37 @@ export class Simulation {
       return null;
     }
     const elapsed = this.nestSpawnTimers.get(this.cellKey(gx, gy)) ?? 0;
-    return Math.max(0, CAT_NEST_SPAWN_INTERVAL - elapsed);
+    const interval = getCatHouseSpawnInterval(building.level);
+    return Math.max(0, interval - elapsed);
   }
 
-  /** 取出包装箱内全部小猫，返回取出的数量 */
-  takeAllCatsFromBox(gx: number, gy: number): number {
+  /** 取出包装箱内全部小猫，返回取出的数量和总价值 */
+  takeAllCatsFromBox(gx: number, gy: number): { count: number; value: number } {
     const building = this.grid.get(gx, gy);
     if (building?.type !== BuildingType.PackingBox) {
-      return 0;
+      return { count: 0, value: 0 };
     }
     const count = this.boxCounts[gy][gx];
+    const value = this.boxValues[gy][gx];
     if (count <= 0) {
-      return 0;
+      return { count: 0, value: 0 };
     }
     this.boxCounts[gy][gx] = 0;
-    return count;
+    this.boxValues[gy][gx] = 0;
+    return { count, value };
   }
 
   onBuildingPlaced(gx: number, gy: number, building: Building): void {
     if (building.type === BuildingType.PackingBox) {
       this.boxCounts[gy][gx] = 0;
+      this.boxValues[gy][gx] = 0;
     }
   }
 
   onBuildingRemoved(gx: number, gy: number): void {
     this.removeCatsInCell(gx, gy);
     this.boxCounts[gy][gx] = 0;
+    this.boxValues[gy][gx] = 0;
     this.nestSpawnTimers.delete(this.cellKey(gx, gy));
     this.boxPulseElapsed.delete(this.cellKey(gx, gy));
   }
@@ -164,9 +178,9 @@ export class Simulation {
       return;
     }
 
-    const multiplier = getMutationGateMultiplier(gate);
+    const multiplier = getDoorMultiplier(gate.level);
     cat.mutated = true;
-    cat.quality *= multiplier;
+    cat.basePrice = Math.round(cat.basePrice * multiplier);
     cat.pulseAnim = { elapsed: 0 };
   }
 
@@ -197,7 +211,7 @@ export class Simulation {
     }
   }
 
-  private tryPack(boxGx: number, boxGy: number): void {
+  private tryPack(boxGx: number, boxGy: number, catPrice: number): void {
     const building = this.grid.get(boxGx, boxGy);
     if (building?.type !== BuildingType.PackingBox) {
       return;
@@ -205,8 +219,10 @@ export class Simulation {
 
     this.triggerBoxPulse(boxGx, boxGy);
 
-    if (this.boxCounts[boxGy][boxGx] < PACKING_BOX_CAPACITY) {
+    const capacity = getCatBoxCapacity(building.level);
+    if (this.boxCounts[boxGy][boxGx] < capacity) {
       this.boxCounts[boxGy][boxGx]++;
+      this.boxValues[boxGy][boxGx] += catPrice;
     }
   }
 
@@ -217,8 +233,9 @@ export class Simulation {
       }
 
       const key = this.cellKey(gx, gy);
+      const interval = getCatHouseSpawnInterval(building.level);
       const elapsed = (this.nestSpawnTimers.get(key) ?? 0) + dt;
-      if (elapsed < CAT_NEST_SPAWN_INTERVAL) {
+      if (elapsed < interval) {
         this.nestSpawnTimers.set(key, elapsed);
         return;
       }
@@ -233,12 +250,16 @@ export class Simulation {
     }
 
     const { dx, dy } = getOffset(nest.direction);
-    const cat = createCat(gx + 0.5 + dx * 0.35, gy + 0.5 + dy * 0.35);
+    const basePrice = getCatHouseBasePrice(nest.level);
+    const cat = createCat(gx + 0.5 + dx * 0.35, gy + 0.5 + dy * 0.35, basePrice);
 
     const target = getNeighbor(gx, gy, nest.direction);
     const targetBuilding = target ? this.grid.get(target.gx, target.gy) : null;
 
-    if (targetBuilding?.type === BuildingType.PackingBox && target) {
+    if (targetBuilding?.type === BuildingType.Conveyor) {
+      cat.speed = getConveyorSpeed(targetBuilding.level);
+    } else if (targetBuilding?.type === BuildingType.PackingBox && target) {
+      cat.speed = getConveyorSpeed(1);
       cat.approachingBox = { gx: target.gx, gy: target.gy };
     }
 
@@ -340,6 +361,10 @@ export class Simulation {
     cat.x = gx + 0.5;
     cat.y = gy + 0.5;
     cat.approachingBox = null;
+    const toBuilding = this.grid.get(gx, gy);
+    if (toBuilding?.type === BuildingType.Conveyor) {
+      cat.speed = getConveyorSpeed(toBuilding.level);
+    }
     this.trackCatCell(cat, gx, gy);
     this.applyMutationGate(cat, gx, gy);
   }
@@ -355,12 +380,12 @@ export class Simulation {
     const dx = center.x - cat.x;
     const dy = center.y - cat.y;
     const dist = Math.hypot(dx, dy);
-    const step = CONVEYOR_SPEED * dt;
+    const step = cat.speed * dt;
 
     if (dist <= Math.max(step, CAT_ARRIVE_EPSILON)) {
       cat.x = center.x;
       cat.y = center.y;
-      this.tryPack(gx, gy);
+      this.tryPack(gx, gy, cat.basePrice);
       return true;
     }
 
@@ -386,7 +411,7 @@ export class Simulation {
   ): boolean {
     const centerX = cell.gx + 0.5;
     const centerY = cell.gy + 0.5;
-    const step = CONVEYOR_SPEED * dt;
+    const step = cat.speed * dt;
 
     let offX = 0;
     let offY = 0;
@@ -454,8 +479,8 @@ export class Simulation {
       }
 
       const { dx, dy } = getOffset(direction);
-      const nextX = cat.x + dx * CONVEYOR_SPEED * dt;
-      const nextY = cat.y + dy * CONVEYOR_SPEED * dt;
+      const nextX = cat.x + dx * cat.speed * dt;
+      const nextY = cat.y + dy * cat.speed * dt;
       const toCell = { gx: Math.floor(nextX), gy: Math.floor(nextY) };
 
       if (toCell.gx === fromCell.gx && toCell.gy === fromCell.gy) {
@@ -473,6 +498,9 @@ export class Simulation {
       if (crossing.kind === 'enter') {
         cat.x = nextX;
         cat.y = nextY;
+        if (toBuilding?.type === BuildingType.Conveyor) {
+          cat.speed = getConveyorSpeed(toBuilding.level);
+        }
         const entered = getCatCell(cat);
         this.trackCatCell(cat, entered.gx, entered.gy);
         this.applyMutationGate(cat, entered.gx, entered.gy);

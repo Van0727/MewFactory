@@ -1,7 +1,7 @@
 import {
-  BUILDING_SHOP_BASE_PRICE,
-  BUILDING_SHOP_MAX_LEVEL,
-} from '../config';
+  getBuildingConfigs,
+  getBuildingPrice,
+} from '../data/buildings';
 import type { BuildingShopKind } from '../game/buildingShopCatalog';
 import {
   getBuildingShopItemLabel,
@@ -75,12 +75,18 @@ export class BuildingShopPanel {
     this.titleEl.textContent = getBuildingShopTitle(kind);
     this.itemsEl.innerHTML = '';
 
-    for (let level = 1; level <= BUILDING_SHOP_MAX_LEVEL; level++) {
-      const price = getBuildingShopPrice(kind, level);
+    const configs = getBuildingConfigs(kind);
+    for (const cfg of configs) {
+      const level = cfg.level;
+      const price = getBuildingPrice(kind, level);
       const canAfford = this.playerGold.getAmount() >= price;
 
       const row = document.createElement('div');
       row.className = 'building-shop-row';
+
+      const rarityDot = document.createElement('span');
+      rarityDot.className = 'rarity-dot';
+      rarityDot.style.backgroundColor = cfg.color;
 
       const label = document.createElement('span');
       label.className = 'building-shop-label';
@@ -100,6 +106,7 @@ export class BuildingShopPanel {
         this.tryBuy(kind, level, price);
       });
 
+      row.appendChild(rarityDot);
       row.appendChild(label);
       row.appendChild(priceEl);
       row.appendChild(btn);
@@ -125,5 +132,5 @@ export class BuildingShopPanel {
 }
 
 export function getBuildingShopPrice(kind: BuildingShopKind, level: number): number {
-  return BUILDING_SHOP_BASE_PRICE[kind] * level;
+  return getBuildingPrice(kind, level);
 }

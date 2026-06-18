@@ -1,4 +1,5 @@
 import { BuildingType } from '../game/Building';
+import type { Building } from '../game/Building';
 import {
   SPRITE_SOURCE_SIZE,
   UI_ICON_SOURCE_SIZE,
@@ -45,6 +46,14 @@ const ASSET_PATHS: Record<AssetKey, string> = {
   uiMutationGate: 'assets/ui/mutation_gate.png',
 };
 
+/** Map spriteId → AssetKey. When real per-level art is ready, this maps e.g. "box_1" → its own key. */
+const SPRITE_ID_MAP: Record<BuildingType, AssetKey> = {
+  CatNest: 'catNest',
+  Conveyor: 'conveyor',
+  PackingBox: 'packingBox',
+  MutationGate: 'mutationGate',
+};
+
 let sprites: Record<AssetKey, HTMLImageElement> | null = null;
 
 function assetUrl(relativePath: string): string {
@@ -73,17 +82,11 @@ export function getSprite(key: AssetKey): HTMLImageElement {
   return sprites[key];
 }
 
-export function getBuildingSprite(type: BuildingType): HTMLImageElement {
-  switch (type) {
-    case BuildingType.CatNest:
-      return getSprite('catNest');
-    case BuildingType.Conveyor:
-      return getSprite('conveyor');
-    case BuildingType.PackingBox:
-      return getSprite('packingBox');
-    case BuildingType.MutationGate:
-      return getSprite('mutationGate');
-  }
+/** 根据建筑获取对应的精灵图。后续可扩展为根据 spriteId 取不同图片。 */
+export function getBuildingSprite(building: Building): HTMLImageElement {
+  // 暂时所有等级共用同一张占位图，后续可映射 building.spriteId → 独立图片
+  const key = SPRITE_ID_MAP[building.type];
+  return getSprite(key);
 }
 
 export function getUiIconUrl(type: BuildingType): string {

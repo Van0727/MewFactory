@@ -1,6 +1,4 @@
 import {
-  CAT_BASE_PRICE,
-  CAT_BASE_QUALITY,
   CAT_MUTATION_PULSE_DURATION,
   CAT_MUTATION_PULSE_PEAK_SCALE,
 } from '../config';
@@ -10,8 +8,11 @@ export interface Cat {
   /** 网格坐标（连续值，0.5 表示格子中心） */
   x: number;
   y: number;
-  quality: number;
+  /** 小猫基础价格（由猫窝等级决定，变异门会直接修改此值） */
   basePrice: number;
+  /** 当前移动速度（由所在传送带等级决定） */
+  speed: number;
+  /** 是否经过变异门 */
   mutated: boolean;
   /** 移向包装箱中心时记录目标格 */
   approachingBox: { gx: number; gy: number } | null;
@@ -27,13 +28,13 @@ export interface CatPulseAnim {
 
 let nextCatId = 1;
 
-export function createCat(x: number, y: number): Cat {
+export function createCat(x: number, y: number, basePrice = 10, speed = 1): Cat {
   return {
     id: nextCatId++,
     x,
     y,
-    quality: CAT_BASE_QUALITY,
-    basePrice: CAT_BASE_PRICE,
+    basePrice,
+    speed,
     mutated: false,
     approachingBox: null,
     recentCells: [],
@@ -46,7 +47,7 @@ export function resetCatIdCounter(): void {
 }
 
 export function getCatPrice(cat: Cat): number {
-  return Math.round(cat.basePrice * cat.quality);
+  return Math.round(cat.basePrice);
 }
 
 /** 缓动缩放：1 → peak → 1，正弦曲线 */

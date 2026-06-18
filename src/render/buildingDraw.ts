@@ -30,7 +30,7 @@ export function drawBuildingInCell(
   building: Building,
   drawScale = 1,
 ): void {
-  const sprite = getBuildingSprite(building.type);
+  const sprite = getBuildingSprite(building);
   const rotation = buildingNeedsRotation(building.type)
     ? directionToAngle(building.direction)
     : 0;
@@ -47,7 +47,7 @@ export function drawHeldBuildingInCell(
   building: Building,
   drawScale = 1,
 ): void {
-  const sprite = getBuildingSprite(building.type);
+  const sprite = getBuildingSprite(building);
   const rotation = buildingNeedsRotation(building.type)
     ? directionToAngle(building.direction)
     : 0;

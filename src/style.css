@@ -325,9 +325,16 @@ body {
 
 .building-shop-row {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: auto 1fr auto auto;
   gap: 0.8cqmin;
   align-items: center;
+}
+
+.rarity-dot {
+  width: 1.2cqmin;
+  height: 1.2cqmin;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .building-shop-label {

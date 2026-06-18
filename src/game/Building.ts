@@ -1,3 +1,9 @@
+import {
+  getBuildingConfig,
+  getBuildingName,
+  type Rarity,
+} from '../data/buildings';
+
 export const BuildingType = {
   CatNest: 'CatNest',
   Conveyor: 'Conveyor',
@@ -16,14 +22,22 @@ export const Direction = {
 
 export type Direction = (typeof Direction)[keyof typeof Direction];
 
-import { MUTATION_GATE_DEFAULT_MULTIPLIER } from '../config';
-
 export interface Building {
   type: BuildingType;
   direction: Direction;
   level: number;
-  /** 变异门价格倍率（仅 MutationGate） */
-  priceMultiplier?: number;
+  /** 建筑名称（如 "纸箱"、"顺丰包装箱"） */
+  name: string;
+  /** 稀有度 */
+  rarity: Rarity;
+  /** 稀有度对应颜色 */
+  color: string;
+  /** 图片资源 ID（如 "box_1"、"door_2"） */
+  spriteId: string;
+  /** 变异门描述文字 */
+  description?: string;
+  /** 变异门效果文字 */
+  effect?: string;
 }
 
 const DIRECTION_ROTATION: Direction[] = [
@@ -51,15 +65,22 @@ export function createBuilding(
   level = 1,
   direction: Direction = Direction.Left,
 ): Building {
-  const building: Building = { type, direction, level };
-  if (type === BuildingType.MutationGate) {
-    building.priceMultiplier = MUTATION_GATE_DEFAULT_MULTIPLIER;
+  const cfg = getBuildingConfig(type, level);
+  const building: Building = {
+    type,
+    direction,
+    level,
+    name: cfg?.name ?? getBuildingName(type, level),
+    rarity: cfg?.rarity ?? 'N',
+    color: cfg?.color ?? '#ffffff',
+    spriteId: cfg?.spriteId ?? type.toLowerCase(),
+  };
+  if (type === BuildingType.MutationGate && 'description' in (cfg ?? {})) {
+    const doorCfg = cfg as { description?: string; effect?: string };
+    building.description = doorCfg.description;
+    building.effect = doorCfg.effect;
   }
   return building;
-}
-
-export function getMutationGateMultiplier(gate: Building): number {
-  return gate.priceMultiplier ?? MUTATION_GATE_DEFAULT_MULTIPLIER;
 }
 
 export function getBuildingLabel(type: BuildingType): string {

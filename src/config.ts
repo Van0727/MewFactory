@@ -42,15 +42,8 @@ export const COLOR_BUILDING_PREVIEW = 'rgba(255, 255, 255, 0.45)';
 export const COLOR_TILE_PLACE_VALID = 'rgba(72, 180, 72, 0.5)';
 export const COLOR_TILE_PLACE_INVALID = 'rgba(230, 130, 50, 0.5)';
 
-export const CAT_NEST_SPAWN_INTERVAL = 5;
-export const CONVEYOR_SPEED = 1;
-export const PACKING_BOX_CAPACITY = 10;
 export const PACK_BOX_PULSE_DURATION = 0.25;
 export const CAT_ARRIVE_EPSILON = 0.04;
-export const CAT_BASE_QUALITY = 1;
-export const CAT_BASE_PRICE = 10;
-/** 变异门默认价格倍率 */
-export const MUTATION_GATE_DEFAULT_MULTIPLIER = 1.5;
 /** 小猫经过变异门时的缩放脉冲时长（秒） */
 export const CAT_MUTATION_PULSE_DURATION = 0.35;
 /** 小猫经过变异门时的缩放峰值 */
@@ -70,18 +63,6 @@ export const REBIRTH_GOLD_MULTIPLIER_STEP = 0.5;
 export const REBIRTH_BASE_COST = 100;
 /** 重生成功提示显示时长（秒） */
 export const REBIRTH_TOAST_DURATION = 1;
-
-/** 建筑商店可售最高等级 */
-export const BUILDING_SHOP_MAX_LEVEL = 3;
-export const BUILDING_SHOP_BASE_PRICE: Record<
-  'CatNest' | 'Conveyor' | 'PackingBox' | 'MutationGate',
-  number
-> = {
-  CatNest: 25,
-  Conveyor: 20,
-  PackingBox: 30,
-  MutationGate: 35,
-};
 
 export const COLOR_CAT = '#ffffff';
 export const COLOR_CAT_MUTATED = '#e74c3c';

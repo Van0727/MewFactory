@@ -1,6 +1,5 @@
 import { InputManager } from '../input/InputManager';
 import { Renderer } from '../render/Renderer';
-import { CAT_BASE_PRICE } from '../config';
 import { ActionButtons } from '../ui/ActionButtons';
 import { GoldBar } from '../ui/GoldBar';
 import { GoldSellFx } from '../ui/GoldSellFx';
@@ -307,12 +306,12 @@ export class Game {
   }
 
   private sellAllHeldCats(): void {
-    const count = this.heldCats.takeAll();
+    const { count, value } = this.heldCats.takeAll();
     if (count <= 0) {
       return;
     }
     const amount = Math.round(
-      count * CAT_BASE_PRICE * this.rebirthState.getGoldMultiplier(),
+      value * this.rebirthState.getGoldMultiplier(),
     );
     const { gx, gy } = getPlayerCell(this.player);
     this.hotbar.refresh();
@@ -343,11 +342,11 @@ export class Game {
 
   private autoBagFromBoxUnderPlayer(): void {
     const { gx, gy } = getPlayerCell(this.player);
-    const taken = this.simulation.takeAllCatsFromBox(gx, gy);
-    if (taken <= 0) {
+    const { count, value } = this.simulation.takeAllCatsFromBox(gx, gy);
+    if (count <= 0) {
       return;
     }
-    this.heldCats.add(taken);
+    this.heldCats.add(count, value);
     this.hotbar.refresh();
     this.updateActionButtons();
   }

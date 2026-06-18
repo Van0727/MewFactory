@@ -1,4 +1,3 @@
-import { PACKING_BOX_CAPACITY } from '../config';
 import type { Cat } from '../game/Cat';
 import { getCatPrice, getCatPulseScale } from '../game/Cat';
 import { getSprite } from './assets';
@@ -78,6 +77,7 @@ export function drawBoxCount(
   gx: number,
   gy: number,
   count: number,
+  capacity: number,
   origin: IsoOrigin,
 ): void {
   const { cx, cy } = getGridCellAnchor(gx, gy, origin);
@@ -90,7 +90,7 @@ export function drawBoxCount(
   ctx.fillStyle = '#fff';
   ctx.strokeStyle = 'rgba(0,0,0,0.6)';
   ctx.lineWidth = 3;
-  const text = `${count}/${PACKING_BOX_CAPACITY}`;
+  const text = `${count}/${capacity}`;
   ctx.strokeText(text, cx, cy);
   ctx.fillText(text, cx, cy);
   ctx.restore();
