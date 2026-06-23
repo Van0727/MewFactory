@@ -12,6 +12,19 @@ export const RARITY_COLORS: Record<Rarity, string> = {
   UR: '#ff9800',
 };
 
+/** 建筑商店名称填充色（高饱和度，配合深色描边） */
+export const SHOP_LABEL_COLORS: Record<Rarity, string> = {
+  N: '#ffffff',
+  R: '#4de84d',
+  SR: '#3db8ff',
+  SSR: '#d060ff',
+  UR: '#ffaa22',
+};
+
+export function getShopLabelColor(rarity: Rarity): string {
+  return SHOP_LABEL_COLORS[rarity];
+}
+
 /** 每级建筑通用配置 */
 export interface BuildingLevelConfig {
   level: number;

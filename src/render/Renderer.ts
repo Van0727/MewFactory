@@ -15,7 +15,7 @@ import type { Player } from '../game/Player';
 import { getPlayerFeetGridPos } from '../game/gridUtils';
 import { getSprite } from './assets';
 import { drawBuilding, drawHeldBuildingInCell } from './buildingDraw';
-import { drawHeldCatStack, drawPlayerSprite } from './playerDraw';
+import { drawPlayerSprite } from './playerDraw';
 import { drawBoxCount, drawCat, drawNestSpawnCountdown, getCatSortY } from './catDraw';
 import { drawSellShop } from './shopDraw';
 import { drawBuildingShop } from './buildingShopDraw';
@@ -210,10 +210,9 @@ export class Renderer {
     }
   }
 
-  private drawPlayer(player: Player, heldBuilding: Building | null, heldCatCount: number): void {
+  private drawPlayer(player: Player, heldBuilding: Building | null, _heldCatCount: number): void {
     const { gx, gy } = getPlayerFeetGridPos(player);
     drawPlayerSprite(this.ctx, getSprite('player'), player, this.origin);
-    drawHeldCatStack(this.ctx, player, heldCatCount, this.origin);
 
     if (heldBuilding) {
       drawHeldBuildingInCell(this.ctx, gx, gy, this.origin, heldBuilding);

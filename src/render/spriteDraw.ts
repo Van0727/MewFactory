@@ -263,7 +263,7 @@ export function drawSpriteInCell(
   drawSquareOnIsoQuad(ctx, source, quad, bleedPx);
 }
 
-function getFlatSpriteSize(gx: number, gy: number, origin: IsoOrigin): number {
+export function getFlatSpriteSize(gx: number, gy: number, origin: IsoOrigin): number {
   const corners = getTileTopCorners(gx, gy, origin);
   const frontWidth = Math.hypot(corners[2][0] - corners[3][0], corners[2][1] - corners[3][1]);
   const backWidth = Math.hypot(corners[1][0] - corners[0][0], corners[1][1] - corners[0][1]);

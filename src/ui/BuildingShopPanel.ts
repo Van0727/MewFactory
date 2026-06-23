@@ -1,6 +1,7 @@
 import {
   getBuildingConfigs,
   getBuildingPrice,
+  getShopLabelColor,
 } from '../data/buildings';
 import type { BuildingShopKind } from '../game/buildingShopCatalog';
 import {
@@ -10,6 +11,7 @@ import {
 import { createShopBuilding } from '../game/buildingShopItems';
 import type { Inventory } from '../game/Inventory';
 import type { PlayerGold } from '../game/PlayerGold';
+import { getBuildingSpriteUrl } from '../render/assets';
 
 export class BuildingShopPanel {
   private container: HTMLElement;
@@ -84,13 +86,14 @@ export class BuildingShopPanel {
       const row = document.createElement('div');
       row.className = 'building-shop-row';
 
-      const rarityDot = document.createElement('span');
-      rarityDot.className = 'rarity-dot';
-      rarityDot.style.backgroundColor = cfg.color;
+      const icon = document.createElement('span');
+      icon.className = 'building-shop-icon';
+      icon.style.backgroundImage = `url(${getBuildingSpriteUrl(kind)})`;
 
       const label = document.createElement('span');
       label.className = 'building-shop-label';
       label.textContent = getBuildingShopItemLabel(kind, level);
+      label.style.color = getShopLabelColor(cfg.rarity);
 
       const priceEl = document.createElement('span');
       priceEl.className = 'building-shop-price';
@@ -106,7 +109,7 @@ export class BuildingShopPanel {
         this.tryBuy(kind, level, price);
       });
 
-      row.appendChild(rarityDot);
+      row.appendChild(icon);
       row.appendChild(label);
       row.appendChild(priceEl);
       row.appendChild(btn);

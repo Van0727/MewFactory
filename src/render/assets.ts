@@ -102,6 +102,12 @@ export function getUiIconUrl(type: BuildingType): string {
   }
 }
 
+/** 棋盘上建筑精灵图 URL（商店展示用） */
+export function getBuildingSpriteUrl(type: BuildingType): string {
+  const key = SPRITE_ID_MAP[type];
+  return assetUrl(ASSET_PATHS[key]);
+}
+
 export function getUiPickupUrl(): string {
   return assetUrl(ASSET_PATHS.uiPickup);
 }

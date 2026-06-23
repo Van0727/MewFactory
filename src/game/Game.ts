@@ -7,12 +7,15 @@ import { Hotbar } from '../ui/Hotbar';
 import { BuildingShopPanel } from '../ui/BuildingShopPanel';
 import { RebirthPanel } from '../ui/RebirthPanel';
 import { RebirthToast } from '../ui/RebirthToast';
+import { HeldCatStackOverlay } from '../ui/HeldCatStackOverlay';
+import { StartGamePanel } from '../ui/StartGamePanel';
 import {
   BuildingType,
   rotateDirection,
   type Building,
 } from './Building';
-import { seedStarterPipeline } from './starterLayout';
+import { IntroDemo } from './IntroDemo';
+import { seedBasicPipeline, seedDemoProductionLines } from './starterLayout';
 import { seedFixedShops } from './fixedShops';
 import { Grid } from './Grid';
 import { getPlayerCell } from './gridUtils';
@@ -25,6 +28,7 @@ import { Player } from './Player';
 import { Simulation } from './Simulation';
 
 type InteractionMode = 'place' | 'pickup';
+type GamePhase = 'intro' | 'playing';
 
 export class Game {
   private player = new Player();
@@ -43,6 +47,10 @@ export class Game {
   private rebirthPanel: RebirthPanel;
   private rebirthToast: RebirthToast;
   private buildingShopPanel: BuildingShopPanel;
+  private heldCatStackOverlay: HeldCatStackOverlay;
+  private startGamePanel: StartGamePanel;
+  private introDemo: IntroDemo;
+  private gamePhase: GamePhase = 'intro';
   private mode: InteractionMode = 'pickup';
   private heldBuilding: Building | null = null;
   private heldSlotIndex: number | null = null;
@@ -50,6 +58,7 @@ export class Game {
   private lastTime = 0;
   private running = false;
   private resizeObserver: ResizeObserver;
+  private gameContainer: HTMLElement;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -59,7 +68,15 @@ export class Game {
     goldBarContainer: HTMLElement,
     uiOverlay: HTMLElement,
     rebirthPanelContainer: HTMLElement,
+    startGamePanelContainer: HTMLElement,
   ) {
+    const gameContainer = canvas.closest('#game-container');
+    if (!gameContainer) {
+      throw new Error('Missing #game-container');
+    }
+    this.gameContainer = gameContainer as HTMLElement;
+    this.gameContainer.classList.add('is-intro');
+
     this.input = new InputManager();
     this.renderer = new Renderer(canvas);
     this.hotbar = new Hotbar(hotbarContainer, this.inventory, this.heldCats);
@@ -79,6 +96,17 @@ export class Game {
       this.playerGold,
       () => this.onInventoryChange(),
     );
+    this.heldCatStackOverlay = new HeldCatStackOverlay(canvas, uiOverlay);
+    this.startGamePanel = new StartGamePanel(startGamePanelContainer, () => this.startGame());
+    this.introDemo = new IntroDemo({
+      player: this.player,
+      grid: this.grid,
+      simulation: this.simulation,
+      collectFromBox: () => this.autoBagFromBoxUnderPlayer(),
+      sellAllHeldCats: () => this.sellAllHeldCats(),
+    });
+
+    this.input.setEnabled(false);
 
     this.input.onHotbarSelect((index) => {
       this.hotbar.select(index);
@@ -117,8 +145,39 @@ export class Game {
   }
 
   private seedWorld(): void {
-    seedStarterPipeline(this.grid, this.simulation);
+    seedDemoProductionLines(this.grid, this.simulation);
     seedFixedShops(this.grid);
+  }
+
+  startGame(): void {
+    if (this.gamePhase === 'playing') {
+      return;
+    }
+
+    this.introDemo.stop();
+    this.gamePhase = 'playing';
+    this.gameContainer.classList.remove('is-intro');
+    this.input.setEnabled(true);
+    this.startGamePanel.hide();
+
+    this.grid = new Grid();
+    this.simulation = new Simulation(this.grid);
+    seedBasicPipeline(this.grid, this.simulation);
+    seedFixedShops(this.grid);
+
+    this.playerGold.setAmount(0);
+    this.heldCats.clear();
+    this.inventory.clear();
+    this.enterPickupMode();
+    this.hotbar.select(PICKUP_SLOT_INDEX);
+    this.lastPlayerCellKey = null;
+    this.player.resetToCenter();
+    this.buildingShopPanel.close();
+
+    this.hotbar.refresh();
+    this.goldBar.refresh();
+    this.rebirthPanel.refresh();
+    this.updateActionButtons();
   }
 
   start(): void {
@@ -134,12 +193,14 @@ export class Game {
   destroy(): void {
     this.running = false;
     this.input.destroy();
+    this.heldCatStackOverlay.destroy();
     window.removeEventListener('resize', this.onResize);
     this.resizeObserver.disconnect();
   }
 
   private onResize = (): void => {
     this.renderer.resize();
+    this.heldCatStackOverlay.update(this.player, this.heldCats.getCount());
   };
 
   private frame = (time: number): void => {
@@ -150,9 +211,14 @@ export class Game {
     const dt = Math.min((time - this.lastTime) / 1000, 0.05);
     this.lastTime = time;
 
-    this.player.update(dt, this.input.getMovement());
-    this.checkShopSell();
-    this.autoBagFromBoxUnderPlayer();
+    if (this.gamePhase === 'intro') {
+      this.introDemo.update(dt);
+    } else {
+      this.player.update(dt, this.input.getMovement());
+      this.checkShopSell();
+      this.autoBagFromBoxUnderPlayer();
+    }
+
     this.goldSellFx.update(dt);
     this.updateActionButtons();
 
@@ -177,6 +243,8 @@ export class Game {
       getBoxDrawScale: (gx, gy) => this.simulation.getBoxDrawScale(gx, gy),
       getNestSpawnCountdown: (gx, gy) => this.simulation.getNestSpawnCountdown(gx, gy),
     });
+
+    this.heldCatStackOverlay.update(this.player, this.heldCats.getCount());
 
     requestAnimationFrame(this.frame);
   };
@@ -366,6 +434,11 @@ export class Game {
   }
 
   private updateActionButtons(): void {
+    if (this.gamePhase === 'intro') {
+      this.actionButtons.hideAll();
+      return;
+    }
+
     const { gx, gy } = getPlayerCell(this.player);
 
     if (this.mode === 'place' && this.heldBuilding) {
@@ -389,6 +462,8 @@ export class Game {
 
   private onInventoryChange(): void {
     this.hotbar.refresh();
+    this.goldBar.refresh();
+    this.rebirthPanel.refresh();
     this.buildingShopPanel.refresh();
 
     if (

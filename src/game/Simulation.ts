@@ -105,10 +105,24 @@ export class Simulation {
     return { count, value };
   }
 
-  onBuildingPlaced(gx: number, gy: number, building: Building): void {
+  onBuildingPlaced(
+    gx: number,
+    gy: number,
+    building: Building,
+    options?: { nestSpawnImmediate?: boolean },
+  ): void {
     if (building.type === BuildingType.PackingBox) {
       this.boxCounts[gy][gx] = 0;
       this.boxValues[gy][gx] = 0;
+    }
+    if (building.type === BuildingType.CatNest) {
+      const key = this.cellKey(gx, gy);
+      const interval = getCatHouseSpawnInterval(building.level);
+      // 预置流水线：首只猫立即产出；玩家放置：从 0 开始计初始 CD
+      this.nestSpawnTimers.set(
+        key,
+        options?.nestSpawnImmediate ? interval : 0,
+      );
     }
   }
 

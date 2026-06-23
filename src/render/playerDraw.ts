@@ -5,7 +5,6 @@ import {
 } from '../config';
 import type { Player } from '../game/Player';
 import { getPlayerFeetGridPos } from '../game/gridUtils';
-import { getSprite } from './assets';
 import type { IsoOrigin } from './isometric';
 import { drawSpriteFlatInCell } from './spriteDraw';
 
@@ -21,25 +20,4 @@ export function drawPlayerSprite(
     anchorX: PLAYER_SPRITE_ANCHOR_X,
     anchorY: PLAYER_SPRITE_ANCHOR_Y,
   });
-}
-
-export function drawHeldCatStack(
-  ctx: CanvasRenderingContext2D,
-  player: Player,
-  count: number,
-  origin: IsoOrigin,
-): void {
-  if (count <= 0) {
-    return;
-  }
-
-  const { gx, gy } = getPlayerFeetGridPos(player);
-  const catSprite = getSprite('catNormal');
-
-  for (let i = 0; i < count; i++) {
-    drawSpriteFlatInCell(ctx, catSprite, gx, gy - 0.15 * (i + 1), origin, {
-      drawScale: 0.38,
-      anchorY: 0.85,
-    });
-  }
 }

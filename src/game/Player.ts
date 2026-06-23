@@ -1,4 +1,4 @@
-import { GRID_SIZE, PLAYER_SPEED } from '../config';
+import { CAT_ARRIVE_EPSILON, GRID_SIZE, PLAYER_SPEED } from '../config';
 import type { MovementState } from '../input/InputManager';
 
 function clamp(value: number, min: number, max: number): number {
@@ -22,5 +22,33 @@ export class Player {
 
     this.x = clamp(this.x + dx * PLAYER_SPEED * dt, 0, GRID_SIZE);
     this.y = clamp(this.y + dy * PLAYER_SPEED * dt, 0, GRID_SIZE);
+  }
+
+  /** 朝目标点移动，到达后返回 true */
+  moveToward(
+    targetX: number,
+    targetY: number,
+    dt: number,
+    speed = PLAYER_SPEED,
+  ): boolean {
+    const dx = targetX - this.x;
+    const dy = targetY - this.y;
+    const dist = Math.hypot(dx, dy);
+    const step = speed * dt;
+
+    if (dist <= Math.max(step, CAT_ARRIVE_EPSILON)) {
+      this.x = targetX;
+      this.y = targetY;
+      return true;
+    }
+
+    this.x = clamp(this.x + (dx / dist) * step, 0, GRID_SIZE);
+    this.y = clamp(this.y + (dy / dist) * step, 0, GRID_SIZE);
+    return false;
+  }
+
+  resetToCenter(): void {
+    this.x = Math.floor(GRID_SIZE / 2) + 0.5;
+    this.y = Math.floor(GRID_SIZE / 2) + 0.5;
   }
 }

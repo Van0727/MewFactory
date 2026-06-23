@@ -29,20 +29,5 @@ export function getBuildingShopTitle(type: BuildingShopKind): string {
 }
 
 export function getBuildingShopItemLabel(type: BuildingShopKind, level: number): string {
-  const name = getBuildingName(type, level);
-  const typeLabel = getBuildingTypeLabel(type);
-  return `${name}（${typeLabel} Lv.${level}）`;
-}
-
-function getBuildingTypeLabel(type: BuildingType): string {
-  switch (type) {
-    case BuildingType.CatNest:
-      return '猫窝';
-    case BuildingType.Conveyor:
-      return '传送带';
-    case BuildingType.MutationGate:
-      return '变异门';
-    case BuildingType.PackingBox:
-      return '包装箱';
-  }
+  return getBuildingName(type, level);
 }

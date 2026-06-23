@@ -24,6 +24,7 @@ const ACTION_KEYS = new Set(['e', 'r']);
 export type ActionKey = 'e' | 'r';
 
 export class InputManager {
+  private enabled = true;
   private movement: MovementState = {
     up: false,
     down: false,
@@ -44,6 +45,20 @@ export class InputManager {
     window.removeEventListener('keyup', this.onKeyUp);
   }
 
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    if (!enabled) {
+      this.movement.up = false;
+      this.movement.down = false;
+      this.movement.left = false;
+      this.movement.right = false;
+    }
+  }
+
+  isEnabled(): boolean {
+    return this.enabled;
+  }
+
   onHotbarSelect(listener: (index: number) => void): void {
     this.hotbarListeners.push(listener);
   }
@@ -53,10 +68,16 @@ export class InputManager {
   }
 
   getMovement(): MovementState {
+    if (!this.enabled) {
+      return { up: false, down: false, left: false, right: false };
+    }
     return this.movement;
   }
 
   private onKeyDown = (e: KeyboardEvent): void => {
+    if (!this.enabled) {
+      return;
+    }
     const key = e.key.toLowerCase();
 
     if (MOVEMENT_KEYS.has(key) || ACTION_KEYS.has(key)) {
@@ -99,6 +120,9 @@ export class InputManager {
   };
 
   private onKeyUp = (e: KeyboardEvent): void => {
+    if (!this.enabled) {
+      return;
+    }
     const key = e.key.toLowerCase();
 
     switch (key) {

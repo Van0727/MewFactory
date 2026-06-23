@@ -10,8 +10,18 @@ const actionButtons = document.getElementById('action-buttons') as HTMLElement |
 const buildingShopPanel = document.getElementById('building-shop-panel') as HTMLElement | null;
 const goldBar = document.getElementById('gold-bar') as HTMLElement | null;
 const uiOverlay = document.getElementById('ui-overlay') as HTMLElement | null;
+const startGamePanel = document.getElementById('start-game-panel') as HTMLElement | null;
 
-if (!canvas || !hotbar || !rebirthPanel || !actionButtons || !buildingShopPanel || !goldBar || !uiOverlay) {
+if (
+  !canvas ||
+  !hotbar ||
+  !rebirthPanel ||
+  !actionButtons ||
+  !buildingShopPanel ||
+  !goldBar ||
+  !uiOverlay ||
+  !startGamePanel
+) {
   throw new Error('Missing required DOM elements');
 }
 
@@ -22,6 +32,7 @@ const actionButtonsEl = actionButtons;
 const buildingShopPanelEl = buildingShopPanel;
 const goldBarEl = goldBar;
 const uiOverlayEl = uiOverlay;
+const startGamePanelEl = startGamePanel;
 const loadingRenderer = new Renderer(gameCanvas);
 loadingRenderer.showLoading();
 
@@ -35,6 +46,7 @@ async function bootstrap(): Promise<void> {
     goldBarEl,
     uiOverlayEl,
     rebirthPanelEl,
+    startGamePanelEl,
   );
   game.start();
 }
