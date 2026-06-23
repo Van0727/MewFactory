@@ -173,8 +173,6 @@ export class Game {
     this.lastPlayerCellKey = null;
     this.player.resetToCenter();
     this.buildingShopPanel.close();
-
-    this.hotbar.refresh();
     this.goldBar.refresh();
     this.rebirthPanel.refresh();
     this.updateActionButtons();
@@ -326,7 +324,7 @@ export class Game {
       if (!conveyor) {
         return;
       }
-      building.direction = rotateDirection(conveyor.direction);
+      building.direction = conveyor.direction;
       this.grid.setMutationGate(gx, gy, building);
     } else {
       this.grid.set(gx, gy, building);

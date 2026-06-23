@@ -1,5 +1,7 @@
 import type { PlayerGold } from '../game/PlayerGold';
 
+import { getGoldChickUrl } from '../render/assets';
+
 export class GoldBar {
   private container: HTMLElement;
   private valueEl: HTMLElement;
@@ -10,6 +12,12 @@ export class GoldBar {
     this.gold = gold;
     this.container.innerHTML = '';
     this.container.className = 'gold-bar';
+
+    const icon = document.createElement('img');
+    icon.className = 'gold-bar-icon';
+    icon.src = getGoldChickUrl();
+    icon.alt = '';
+    this.container.appendChild(icon);
 
     const label = document.createElement('span');
     label.className = 'gold-bar-label';

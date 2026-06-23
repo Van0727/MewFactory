@@ -88,7 +88,7 @@ export class BuildingShopPanel {
 
       const icon = document.createElement('span');
       icon.className = 'building-shop-icon';
-      icon.style.backgroundImage = `url(${getBuildingSpriteUrl(kind)})`;
+      icon.style.backgroundImage = `url(${getBuildingSpriteUrl(cfg.spriteId)})`;
 
       const label = document.createElement('span');
       label.className = 'building-shop-label';

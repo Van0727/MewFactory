@@ -18,7 +18,7 @@ export const TILE_BLEED_PX = 1.25;
 /** Outward overlap for ground tiles so neighbors cover each other's edges (CSS px). */
 export const TILE_GROUND_BLEED_PX = 1.5;
 /** Neutral fill drawn under every tile so any sub-pixel gap shows this, not the background. */
-export const COLOR_GROUND_BASE = '#cccccc';
+export const COLOR_GROUND_BASE = '#d8c0f0';
 /** 远处行宽相对近处的比例，越小纵深感越强 */
 export const PERSPECTIVE_MIN_SCALE = 0.7;
 export const PLAYER_SPEED = 4;
@@ -27,12 +27,12 @@ export const PLAYER_SPRITE_ANCHOR_X = 0.5;
 export const PLAYER_SPRITE_ANCHOR_Y = 0.81;
 /** 相对格子宽度的绘制缩放，胶囊不占满整格 */
 export const PLAYER_SPRITE_TILE_SCALE = 0.72;
-export const COLOR_LIGHT = '#e8e8e8';
-export const COLOR_DARK = '#b0b0b0';
-export const COLOR_LIGHT_FRONT = '#9a9a9a';
-export const COLOR_DARK_FRONT = '#707070';
+export const COLOR_LIGHT = '#f0e6ff';
+export const COLOR_DARK = '#dac6f5';
+export const COLOR_LIGHT_FRONT = '#b898dc';
+export const COLOR_DARK_FRONT = '#9b7bd4';
 export const COLOR_PLAYER = '#4a90d9';
-export const COLOR_BACKGROUND = '#1a1a2e';
+export const COLOR_BACKGROUND = '#d4b8f0';
 
 export const COLOR_BUILDING_CAT_NEST = '#d4a574';
 export const COLOR_BUILDING_CONVEYOR = '#6b8cae';

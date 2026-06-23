@@ -1,5 +1,5 @@
-import { BuildingType } from '../game/Building';
 import type { Building } from '../game/Building';
+import { BUILDING_CONFIGS } from '../data/buildings';
 import {
   SPRITE_SOURCE_SIZE,
   UI_ICON_SOURCE_SIZE,
@@ -11,107 +11,114 @@ export const BOARD_SPRITE_WIDTH = SPRITE_SOURCE_SIZE;
 export const BOARD_SPRITE_HEIGHT = SPRITE_SOURCE_SIZE;
 export const UI_ICON_SIZE = UI_ICON_SOURCE_SIZE;
 
-export type AssetKey =
+export type BaseAssetKey =
   | 'tileLight'
   | 'tileDark'
-  | 'catNest'
-  | 'conveyor'
-  | 'packingBox'
-  | 'mutationGate'
   | 'catNormal'
   | 'catMutated'
   | 'player'
   | 'sellShop'
   | 'uiPickup'
-  | 'uiCatNest'
-  | 'uiConveyor'
-  | 'uiPackingBox'
-  | 'uiMutationGate';
+  | 'goldChick';
 
-const ASSET_PATHS: Record<AssetKey, string> = {
+const BASE_ASSET_PATHS: Record<BaseAssetKey, string> = {
   tileLight: 'assets/tiles/tile_light.png',
   tileDark: 'assets/tiles/tile_dark.png',
-  catNest: 'assets/buildings/cat_nest.png',
-  conveyor: 'assets/buildings/conveyor.png',
-  packingBox: 'assets/buildings/packing_box.png',
-  mutationGate: 'assets/buildings/mutation_gate.png',
   catNormal: 'assets/cats/cat_normal.png',
   catMutated: 'assets/cats/cat_mutated.png',
   player: 'assets/player/player.png',
   sellShop: 'assets/buildings/sell_shop.png',
   uiPickup: 'assets/ui/pickup.png',
-  uiCatNest: 'assets/ui/cat_nest.png',
-  uiConveyor: 'assets/ui/conveyor.png',
-  uiPackingBox: 'assets/ui/packing_box.png',
-  uiMutationGate: 'assets/ui/mutation_gate.png',
+  goldChick: 'assets/ui/gold_chick.png',
 };
 
-/** Map spriteId → AssetKey. When real per-level art is ready, this maps e.g. "box_1" → its own key. */
-const SPRITE_ID_MAP: Record<BuildingType, AssetKey> = {
-  CatNest: 'catNest',
-  Conveyor: 'conveyor',
-  PackingBox: 'packingBox',
-  MutationGate: 'mutationGate',
-};
+function collectBuildingSpriteIds(): string[] {
+  const ids = new Set<string>();
+  for (const configs of Object.values(BUILDING_CONFIGS)) {
+    for (const cfg of configs) {
+      ids.add(cfg.spriteId);
+    }
+  }
+  return [...ids];
+}
 
-let sprites: Record<AssetKey, HTMLImageElement> | null = null;
+let baseSprites: Record<BaseAssetKey, HTMLImageElement> | null = null;
+let buildingSprites: Map<string, HTMLImageElement> | null = null;
 
 function assetUrl(relativePath: string): string {
   const base = import.meta.env.BASE_URL;
   return `${base}${relativePath}`;
 }
 
-async function loadImage(key: AssetKey): Promise<[AssetKey, HTMLImageElement]> {
-  const src = assetUrl(ASSET_PATHS[key]);
+async function loadImageFromPath(path: string): Promise<HTMLImageElement> {
   const img = new Image();
-  img.src = src;
+  img.src = assetUrl(path);
   await img.decode();
+  return img;
+}
+
+async function loadBaseImage(key: BaseAssetKey): Promise<[BaseAssetKey, HTMLImageElement]> {
+  const img = await loadImageFromPath(BASE_ASSET_PATHS[key]);
   return [key, img];
 }
 
 export async function loadAssets(): Promise<void> {
-  const keys = Object.keys(ASSET_PATHS) as AssetKey[];
-  const entries = await Promise.all(keys.map(loadImage));
-  sprites = Object.fromEntries(entries) as Record<AssetKey, HTMLImageElement>;
+  const baseKeys = Object.keys(BASE_ASSET_PATHS) as BaseAssetKey[];
+  const baseEntries = await Promise.all(baseKeys.map(loadBaseImage));
+  baseSprites = Object.fromEntries(baseEntries) as Record<BaseAssetKey, HTMLImageElement>;
+
+  const spriteIds = collectBuildingSpriteIds();
+  const buildingEntries = await Promise.all(
+    spriteIds.map(async (spriteId) => {
+      const img = await loadImageFromPath(`assets/buildings/${spriteId}.png`);
+      return [spriteId, img] as const;
+    }),
+  );
+  buildingSprites = new Map(buildingEntries);
 }
 
-export function getSprite(key: AssetKey): HTMLImageElement {
-  if (!sprites) {
+export function getSprite(key: BaseAssetKey): HTMLImageElement {
+  if (!baseSprites) {
     throw new Error('Assets not loaded — call loadAssets() first');
   }
-  return sprites[key];
+  return baseSprites[key];
 }
 
-/** 根据建筑获取对应的精灵图。后续可扩展为根据 spriteId 取不同图片。 */
-export function getBuildingSprite(building: Building): HTMLImageElement {
-  // 暂时所有等级共用同一张占位图，后续可映射 building.spriteId → 独立图片
-  const key = SPRITE_ID_MAP[building.type];
-  return getSprite(key);
-}
-
-export function getUiIconUrl(type: BuildingType): string {
-  switch (type) {
-    case BuildingType.CatNest:
-      return assetUrl(ASSET_PATHS.uiCatNest);
-    case BuildingType.Conveyor:
-      return assetUrl(ASSET_PATHS.uiConveyor);
-    case BuildingType.PackingBox:
-      return assetUrl(ASSET_PATHS.uiPackingBox);
-    case BuildingType.MutationGate:
-      return assetUrl(ASSET_PATHS.uiMutationGate);
+export function getSpriteById(spriteId: string): HTMLImageElement {
+  if (!buildingSprites) {
+    throw new Error('Assets not loaded — call loadAssets() first');
   }
+  const img = buildingSprites.get(spriteId);
+  if (!img) {
+    throw new Error(`Missing building sprite: ${spriteId}`);
+  }
+  return img;
 }
 
-/** 棋盘上建筑精灵图 URL（商店展示用） */
-export function getBuildingSpriteUrl(type: BuildingType): string {
-  const key = SPRITE_ID_MAP[type];
-  return assetUrl(ASSET_PATHS[key]);
+export function getSpriteUrl(spriteId: string): string {
+  return assetUrl(`assets/buildings/${spriteId}.png`);
+}
+
+export function getBuildingSprite(building: Building): HTMLImageElement {
+  return getSpriteById(building.spriteId);
+}
+
+export function getUiIconUrl(spriteId: string): string {
+  return getSpriteUrl(spriteId);
+}
+
+export function getBuildingSpriteUrl(spriteId: string): string {
+  return getSpriteUrl(spriteId);
 }
 
 export function getUiPickupUrl(): string {
-  return assetUrl(ASSET_PATHS.uiPickup);
+  return assetUrl(BASE_ASSET_PATHS.uiPickup);
+}
+
+export function getGoldChickUrl(): string {
+  return assetUrl(BASE_ASSET_PATHS.goldChick);
 }
 
 export function getCatSpriteUrl(): string {
-  return assetUrl(ASSET_PATHS.catNormal);
+  return assetUrl(BASE_ASSET_PATHS.catNormal);
 }

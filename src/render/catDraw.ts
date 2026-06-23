@@ -81,19 +81,56 @@ export function drawBoxCount(
   origin: IsoOrigin,
 ): void {
   const { cx, cy } = getGridCellAnchor(gx, gy, origin);
-  const fontSize = Math.max(10, 14);
+  const barW = Math.max(48, 56);
+  const barH = Math.max(8, 10);
+  const barX = cx - barW / 2;
+  const barY = cy - barH * 2.2;
+  const fillRatio = capacity > 0 ? Math.min(1, count / capacity) : 0;
 
   ctx.save();
+  ctx.fillStyle = 'rgba(60, 40, 25, 0.88)';
+  roundRect(ctx, barX, barY, barW, barH, barH / 2);
+  ctx.fill();
+
+  if (fillRatio > 0) {
+    ctx.fillStyle = '#ffd54f';
+    roundRect(ctx, barX + 1, barY + 1, (barW - 2) * fillRatio, barH - 2, (barH - 2) / 2);
+    ctx.fill();
+  }
+
+  const fontSize = Math.max(9, 11);
   ctx.font = `bold ${fontSize}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#fff';
-  ctx.strokeStyle = 'rgba(0,0,0,0.6)';
-  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+  ctx.lineWidth = 2;
   const text = `${count}/${capacity}`;
-  ctx.strokeText(text, cx, cy);
-  ctx.fillText(text, cx, cy);
+  ctx.strokeText(text, cx, barY + barH / 2);
+  ctx.fillText(text, cx, barY + barH / 2);
   ctx.restore();
+}
+
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): void {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+  ctx.lineTo(x + radius, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
 }
 
 export function getCatSortY(cat: Cat, origin: IsoOrigin): number {

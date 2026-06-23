@@ -93,7 +93,7 @@ export class Hotbar {
       const data = this.inventory.getSlot(i);
 
       if (data) {
-        icon.style.backgroundImage = `url(${getUiIconUrl(data.building.type)})`;
+        icon.style.backgroundImage = `url(${getUiIconUrl(data.building.spriteId)})`;
         icon.style.display = '';
         icon.dataset.type = data.building.type;
         badge.textContent = String(data.count);

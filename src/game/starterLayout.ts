@@ -3,7 +3,6 @@ import {
   BuildingType,
   createBuilding,
   Direction,
-  rotateDirection,
 } from './Building';
 import type { Grid } from './Grid';
 import type { Simulation } from './Simulation';
@@ -44,7 +43,7 @@ function seedPipeline(
       const gate = createBuilding(
         BuildingType.MutationGate,
         levels.gate,
-        rotateDirection(conveyor.direction),
+        conveyor.direction,
       );
       grid.setMutationGate(gx, row, gate);
     }
