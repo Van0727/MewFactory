@@ -1,7 +1,7 @@
 import { BuildingType, type Building } from '../game/Building';
 import { getBuildingSprite } from './assets';
 import { type IsoOrigin } from './isometric';
-import { directionToAngle, drawSpriteFlatInCell, drawSpriteInCell } from './spriteDraw';
+import { directionToAngleForBuilding, drawSpriteFlatInCell, drawSpriteInCell } from './spriteDraw';
 
 function buildingNeedsRotation(type: BuildingType): boolean {
   return (
@@ -32,7 +32,7 @@ export function drawBuildingInCell(
 ): void {
   const sprite = getBuildingSprite(building);
   const rotation = buildingNeedsRotation(building.type)
-    ? directionToAngle(building.direction)
+    ? directionToAngleForBuilding(building)
     : 0;
 
   drawSpriteInCell(ctx, sprite, gx, gy, origin, { rotation, drawScale });
@@ -49,7 +49,7 @@ export function drawHeldBuildingInCell(
 ): void {
   const sprite = getBuildingSprite(building);
   const rotation = buildingNeedsRotation(building.type)
-    ? directionToAngle(building.direction)
+    ? directionToAngleForBuilding(building)
     : 0;
 
   drawSpriteFlatInCell(ctx, sprite, gx, gy, origin, { rotation, drawScale });

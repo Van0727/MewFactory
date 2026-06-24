@@ -27,6 +27,10 @@ export const PLAYER_SPRITE_ANCHOR_X = 0.5;
 export const PLAYER_SPRITE_ANCHOR_Y = 0.81;
 /** 相对格子宽度的绘制缩放，胶囊不占满整格 */
 export const PLAYER_SPRITE_TILE_SCALE = 0.72;
+/** 小猫 role 相对玩家基准尺寸的放大倍数 */
+export const ROLE_SPRITE_SIZE_MULTIPLIER = 1.25;
+export const CAT_ROLE_SPRITE_TILE_SCALE =
+  PLAYER_SPRITE_TILE_SCALE * ROLE_SPRITE_SIZE_MULTIPLIER;
 export const COLOR_LIGHT = '#f0e6ff';
 export const COLOR_DARK = '#dac6f5';
 export const COLOR_LIGHT_FRONT = '#b898dc';
@@ -48,6 +52,8 @@ export const CAT_ARRIVE_EPSILON = 0.04;
 export const CAT_MUTATION_PULSE_DURATION = 0.35;
 /** 小猫经过变异门时的缩放峰值 */
 export const CAT_MUTATION_PULSE_PEAK_SCALE = 1.2;
+/** 精舞门基础旋转速度（弧度/秒），层数越高再 ×(1 + 0.5×stacks) */
+export const CAT_DANCE_BASE_SPIN_SPEED = Math.PI * 2;
 
 /** 出售金币飞出动画：弹出阶段时长（秒） */
 export const GOLD_SELL_POP_DURATION = 0.45;

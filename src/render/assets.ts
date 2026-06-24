@@ -32,12 +32,17 @@ const BASE_ASSET_PATHS: Record<BaseAssetKey, string> = {
   goldChick: 'assets/ui/gold_chick.png',
 };
 
+export const ROLE_SPRITE_IDS = ['role_1', 'role_2', 'role_3', 'role_4', 'role_5'] as const;
+
 function collectBuildingSpriteIds(): string[] {
   const ids = new Set<string>();
   for (const configs of Object.values(BUILDING_CONFIGS)) {
     for (const cfg of configs) {
       ids.add(cfg.spriteId);
     }
+  }
+  for (const roleId of ROLE_SPRITE_IDS) {
+    ids.add(roleId);
   }
   return [...ids];
 }
@@ -109,6 +114,19 @@ export function getUiIconUrl(spriteId: string): string {
 
 export function getBuildingSpriteUrl(spriteId: string): string {
   return getSpriteUrl(spriteId);
+}
+
+export function getRoleSpriteId(nestLevel: number): string {
+  const level = Math.max(1, Math.min(5, nestLevel));
+  return `role_${level}`;
+}
+
+export function getRoleSprite(nestLevel: number): HTMLImageElement {
+  return getSpriteById(getRoleSpriteId(nestLevel));
+}
+
+export function getRoleSpriteUrl(nestLevel: number): string {
+  return getSpriteUrl(getRoleSpriteId(nestLevel));
 }
 
 export function getUiPickupUrl(): string {

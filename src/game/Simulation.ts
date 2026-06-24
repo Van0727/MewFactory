@@ -1,5 +1,6 @@
 import {
   CAT_ARRIVE_EPSILON,
+  CAT_DANCE_BASE_SPIN_SPEED,
   CAT_MUTATION_PULSE_DURATION,
   GRID_SIZE,
   PACK_BOX_PULSE_DURATION,
@@ -51,6 +52,7 @@ export class Simulation {
   update(dt: number): void {
     this.updateBoxPulse(dt);
     this.updateCatPulseAnims(dt);
+    this.updateCatMutations(dt);
     this.updateCatNests(dt);
     this.updateCatMotion(dt);
   }
@@ -193,9 +195,35 @@ export class Simulation {
     }
 
     const multiplier = getDoorMultiplier(gate.level);
-    cat.mutated = true;
     cat.basePrice = Math.round(cat.basePrice * multiplier);
     cat.pulseAnim = { elapsed: 0 };
+
+    switch (gate.level) {
+      case 1:
+        cat.mutations.barbecueStacks++;
+        break;
+      case 2:
+        cat.mutations.inflateStacks++;
+        break;
+      case 3:
+        cat.mutations.danceStacks++;
+        break;
+      case 4:
+        cat.mutations.flipCount++;
+        break;
+      default:
+        break;
+    }
+  }
+
+  private updateCatMutations(dt: number): void {
+    for (const cat of this.cats) {
+      if (cat.mutations.danceStacks <= 0) {
+        continue;
+      }
+      cat.mutations.danceAngle +=
+        dt * CAT_DANCE_BASE_SPIN_SPEED * (1 + 0.5 * cat.mutations.danceStacks);
+    }
   }
 
   private updateCatPulseAnims(dt: number): void {
@@ -265,7 +293,13 @@ export class Simulation {
 
     const { dx, dy } = getOffset(nest.direction);
     const basePrice = getCatHouseBasePrice(nest.level);
-    const cat = createCat(gx + 0.5 + dx * 0.35, gy + 0.5 + dy * 0.35, basePrice);
+    const cat = createCat(
+      gx + 0.5 + dx * 0.35,
+      gy + 0.5 + dy * 0.35,
+      basePrice,
+      1,
+      nest.level,
+    );
 
     const target = getNeighbor(gx, gy, nest.direction);
     const targetBuilding = target ? this.grid.get(target.gx, target.gy) : null;

@@ -3,6 +3,14 @@ import {
   CAT_MUTATION_PULSE_PEAK_SCALE,
 } from '../config';
 
+export interface CatMutationState {
+  barbecueStacks: number;
+  inflateStacks: number;
+  danceStacks: number;
+  flipCount: number;
+  danceAngle: number;
+}
+
 export interface Cat {
   id: number;
   /** 网格坐标（连续值，0.5 表示格子中心） */
@@ -10,10 +18,12 @@ export interface Cat {
   y: number;
   /** 小猫基础价格（由猫窝等级决定，变异门会直接修改此值） */
   basePrice: number;
+  /** 出生猫窝等级，决定 role 美术（role_1 ~ role_5） */
+  nestLevel: number;
   /** 当前移动速度（由所在传送带等级决定） */
   speed: number;
-  /** 是否经过变异门 */
-  mutated: boolean;
+  /** 变异门叠加状态 */
+  mutations: CatMutationState;
   /** 移向包装箱中心时记录目标格 */
   approachingBox: { gx: number; gy: number } | null;
   /** 最近经过的格子，用于检测传送带循环 */
@@ -28,14 +38,41 @@ export interface CatPulseAnim {
 
 let nextCatId = 1;
 
-export function createCat(x: number, y: number, basePrice = 10, speed = 1): Cat {
+export function createEmptyMutationState(): CatMutationState {
+  return {
+    barbecueStacks: 0,
+    inflateStacks: 0,
+    danceStacks: 0,
+    flipCount: 0,
+    danceAngle: 0,
+  };
+}
+
+export function isCatMutated(mutations: CatMutationState): boolean {
+  return (
+    mutations.barbecueStacks +
+      mutations.inflateStacks +
+      mutations.danceStacks +
+      mutations.flipCount >
+    0
+  );
+}
+
+export function createCat(
+  x: number,
+  y: number,
+  basePrice = 10,
+  speed = 1,
+  nestLevel = 1,
+): Cat {
   return {
     id: nextCatId++,
     x,
     y,
     basePrice,
+    nestLevel,
     speed,
-    mutated: false,
+    mutations: createEmptyMutationState(),
     approachingBox: null,
     recentCells: [],
     pulseAnim: null,

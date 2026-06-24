@@ -1,9 +1,15 @@
 import type { Cat } from '../game/Cat';
 import { getCatPrice, getCatPulseScale } from '../game/Cat';
-import { getSprite } from './assets';
+import {
+  CAT_ROLE_SPRITE_TILE_SCALE,
+  PLAYER_SPRITE_ANCHOR_X,
+  PLAYER_SPRITE_ANCHOR_Y,
+} from '../config';
+import { getRoleSprite } from './assets';
+import { prepareCatRoleSource } from './catSprite';
 import type { IsoOrigin } from './isometric';
 import { getGridCellAnchor } from './tileBounds';
-import { drawSpriteInCell } from './spriteDraw';
+import { drawRoleFlatInCell } from './spriteDraw';
 
 export function drawCat(
   ctx: CanvasRenderingContext2D,
@@ -15,8 +21,15 @@ export function drawCat(
   const pulseScale = cat.pulseAnim
     ? getCatPulseScale(cat.pulseAnim.elapsed)
     : 1;
-  const sprite = cat.mutated ? getSprite('catMutated') : getSprite('catNormal');
-  drawSpriteInCell(ctx, sprite, gx, gy, origin, { drawScale: pulseScale });
+  const inflateScale = 1 + 0.1 * cat.mutations.inflateStacks;
+  const drawScale = CAT_ROLE_SPRITE_TILE_SCALE * inflateScale * pulseScale;
+  const roleImg = getRoleSprite(cat.nestLevel);
+  const source = prepareCatRoleSource(roleImg, cat.mutations);
+  drawRoleFlatInCell(ctx, source, gx, gy, origin, {
+    drawScale,
+    anchorX: PLAYER_SPRITE_ANCHOR_X,
+    anchorY: PLAYER_SPRITE_ANCHOR_Y,
+  });
   drawCatPriceLabel(ctx, gx, gy, cat, pulseScale, origin);
 }
 
@@ -32,7 +45,8 @@ function drawCatPriceLabel(
   const fontSize = Math.max(10, 13);
   const labelY = cy - fontSize * 1.5;
   const text = `${getCatPrice(cat)}`;
-  const fillStyle = cat.mutated ? '#ffb4b4' : '#fff';
+  const fillStyle =
+    cat.mutations.barbecueStacks > 0 ? '#ffb4b4' : '#fff';
 
   ctx.save();
   ctx.translate(cx, labelY);

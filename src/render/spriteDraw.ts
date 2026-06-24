@@ -1,4 +1,4 @@
-import { Direction } from '../game/Building';
+import { BuildingType, Direction, type Building } from '../game/Building';
 import { TILE_BLEED_PX, TILE_GROUND_BLEED_PX } from '../config';
 import { getTileTopCorners, type IsoOrigin } from './isometric';
 import { getCellAnchor, getGridCellAnchor } from './tileBounds';
@@ -20,6 +20,25 @@ export function directionToAngle(dir: Direction): number {
     case Direction.Down:
       return -Math.PI / 2;
   }
+}
+
+/** 猫窝素材默认朝上；其余建筑沿用朝左基准 */
+export function directionToAngleForBuilding(
+  building: Pick<Building, 'type' | 'direction'>,
+): number {
+  if (building.type === BuildingType.CatNest) {
+    switch (building.direction) {
+      case Direction.Up:
+        return 0;
+      case Direction.Right:
+        return -Math.PI / 2;
+      case Direction.Down:
+        return Math.PI;
+      case Direction.Left:
+        return Math.PI / 2;
+    }
+  }
+  return directionToAngle(building.direction);
 }
 
 export function configureSpriteSmoothing(ctx: CanvasRenderingContext2D): void {
@@ -239,6 +258,31 @@ function prepareSquareSource(
   return offscreen;
 }
 
+/** 角色专用：旋转时扩大离屏画布；缩放仅在最终绘制时应用，避免放大被裁切 */
+function prepareRoleFlatSource(
+  source: CanvasImageSource,
+  rotation: number,
+): CanvasImageSource {
+  if (rotation === 0) {
+    return source;
+  }
+  const size = getSourceSize(source);
+  const pad = Math.ceil(size * (Math.SQRT2 - 1) / 2);
+  const canvasSize = size + 2 * pad;
+  const offscreen = borrowOffscreen(canvasSize);
+  const octx = offscreen.getContext('2d');
+  if (!octx) {
+    return source;
+  }
+  octx.setTransform(1, 0, 0, 1, 0, 0);
+  octx.clearRect(0, 0, canvasSize, canvasSize);
+  configureSpriteSmoothing(octx);
+  octx.translate(canvasSize / 2, canvasSize / 2);
+  octx.rotate(rotation);
+  octx.drawImage(source, -size / 2, -size / 2, size, size);
+  return offscreen;
+}
+
 export interface DrawSpriteInCellOptions {
   rotation?: number;
   drawScale?: number;
@@ -295,6 +339,34 @@ export function drawSpriteFlatInCell(
   ctx.save();
   configureSpriteSmoothing(ctx);
   ctx.drawImage(source, cx - anchorPxX, cy - anchorPxY, drawSize, drawSize);
+  ctx.restore();
+}
+
+/** 无透视：小猫 role 专用，支持任意缩放且不被离屏画布裁切 */
+export function drawRoleFlatInCell(
+  ctx: CanvasRenderingContext2D,
+  source: CanvasImageSource,
+  gx: number,
+  gy: number,
+  origin: IsoOrigin,
+  options: DrawSpriteInCellOptions = {},
+): void {
+  const { cx, cy } = getGridCellAnchor(gx, gy, origin);
+  const size = getFlatSpriteSize(gx, gy, origin);
+  const {
+    rotation = 0,
+    drawScale = 1,
+    anchorX = 0.5,
+    anchorY = 0.5,
+  } = options;
+  const prepared = prepareRoleFlatSource(source, rotation);
+  const drawSize = size * drawScale;
+  const anchorPxX = drawSize * anchorX;
+  const anchorPxY = drawSize * anchorY;
+
+  ctx.save();
+  configureSpriteSmoothing(ctx);
+  ctx.drawImage(prepared, cx - anchorPxX, cy - anchorPxY, drawSize, drawSize);
   ctx.restore();
 }
 
