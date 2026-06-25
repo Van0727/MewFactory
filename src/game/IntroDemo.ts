@@ -1,5 +1,5 @@
 import { BuildingType } from './Building';
-import { SELL_SHOP_GRID_CELL } from './gridCoords';
+import { getSellShopCenter } from './gridCoords';
 import type { Grid } from './Grid';
 import type { Player } from './Player';
 import type { Simulation } from './Simulation';
@@ -107,8 +107,7 @@ export class IntroDemo {
   }
 
   private updateSelling(dt: number): void {
-    const targetX = SELL_SHOP_GRID_CELL.gx + 0.5;
-    const targetY = SELL_SHOP_GRID_CELL.gy + 0.5;
+    const { x: targetX, y: targetY } = getSellShopCenter();
     const arrived = this.deps.player.moveToward(targetX, targetY, dt);
     if (arrived) {
       this.deps.sellAllHeldCats();

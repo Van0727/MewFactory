@@ -17,7 +17,6 @@ export type BaseAssetKey =
   | 'catNormal'
   | 'catMutated'
   | 'player'
-  | 'sellShop'
   | 'uiPickup'
   | 'goldChick';
 
@@ -26,13 +25,18 @@ const BASE_ASSET_PATHS: Record<BaseAssetKey, string> = {
   tileDark: 'assets/tiles/tile_dark.png',
   catNormal: 'assets/cats/cat_normal.png',
   catMutated: 'assets/cats/cat_mutated.png',
-  player: 'assets/player/player.png',
-  sellShop: 'assets/buildings/sell_shop.png',
+  player: 'assets/buildings/player.png',
   uiPickup: 'assets/ui/pickup.png',
   goldChick: 'assets/ui/gold_chick.png',
 };
 
 export const ROLE_SPRITE_IDS = ['role_1', 'role_2', 'role_3', 'role_4', 'role_5'] as const;
+/** 出售区域贴图（512×256，占 2 格宽） */
+export const SELL_SHOP_SPRITE_ID = 'sell_shop';
+/** 开始游戏按钮 */
+export const START_BUTTON_SPRITE_ID = 'start';
+
+const BOARD_EXTRA_SPRITE_IDS = [SELL_SHOP_SPRITE_ID, START_BUTTON_SPRITE_ID] as const;
 
 function collectBuildingSpriteIds(): string[] {
   const ids = new Set<string>();
@@ -43,6 +47,9 @@ function collectBuildingSpriteIds(): string[] {
   }
   for (const roleId of ROLE_SPRITE_IDS) {
     ids.add(roleId);
+  }
+  for (const spriteId of BOARD_EXTRA_SPRITE_IDS) {
+    ids.add(spriteId);
   }
   return [...ids];
 }
@@ -127,6 +134,18 @@ export function getRoleSprite(nestLevel: number): HTMLImageElement {
 
 export function getRoleSpriteUrl(nestLevel: number): string {
   return getSpriteUrl(getRoleSpriteId(nestLevel));
+}
+
+export function getSellShopSprite(): HTMLImageElement {
+  return getSpriteById(SELL_SHOP_SPRITE_ID);
+}
+
+export function getSellShopSpriteUrl(): string {
+  return getSpriteUrl(SELL_SHOP_SPRITE_ID);
+}
+
+export function getStartButtonUrl(): string {
+  return getSpriteUrl(START_BUTTON_SPRITE_ID);
 }
 
 export function getUiPickupUrl(): string {

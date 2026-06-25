@@ -19,9 +19,31 @@ export function gridCellToUser(gx: number, gy: number): { x: number; y: number }
   };
 }
 
-/** 固定出售商店：X=5, Y=1（底部从左数第 5 格） */
+/** 固定出售商店：X=5~6, Y=1（底部从左数第 5–6 格，宽 2 格） */
 export const SELL_SHOP_USER_CELL = { x: 5, y: 1 };
+export const SELL_SHOP_WIDTH_CELLS = 2;
 export const SELL_SHOP_GRID_CELL = userCellToGrid(
   SELL_SHOP_USER_CELL.x,
   SELL_SHOP_USER_CELL.y,
 );
+
+export function isSellShopCell(gx: number, gy: number): boolean {
+  return (
+    gy === SELL_SHOP_GRID_CELL.gy &&
+    gx >= SELL_SHOP_GRID_CELL.gx &&
+    gx < SELL_SHOP_GRID_CELL.gx + SELL_SHOP_WIDTH_CELLS
+  );
+}
+
+/** 出售商店贴图锚点格（最左侧格） */
+export function isSellShopAnchor(gx: number, gy: number): boolean {
+  return gx === SELL_SHOP_GRID_CELL.gx && gy === SELL_SHOP_GRID_CELL.gy;
+}
+
+/** 出售商店中心（玩家走向的目标点） */
+export function getSellShopCenter(): { x: number; y: number } {
+  return {
+    x: SELL_SHOP_GRID_CELL.gx + SELL_SHOP_WIDTH_CELLS / 2,
+    y: SELL_SHOP_GRID_CELL.gy + 0.5,
+  };
+}

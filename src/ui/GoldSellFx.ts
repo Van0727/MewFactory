@@ -4,6 +4,7 @@ import {
   GOLD_SELL_POP_DURATION,
 } from '../config';
 import { gridCellToOverlayPoint } from '../render/overlayCoords';
+import { overlayUiScale } from './uiScale';
 import type { GoldBar } from './GoldBar';
 
 interface CoinParticle {
@@ -22,6 +23,7 @@ interface ActiveSellFx {
   phase: 'pop' | 'fly';
   labelEl: HTMLElement;
   coins: CoinParticle[];
+  uiScale: number;
   onComplete: () => void;
 }
 
@@ -63,6 +65,8 @@ export class GoldSellFx {
 
     const start = gridCellToOverlayPoint(this.canvas, this.overlay, gx, gy);
     const target = this.goldBar.getFlyTarget(this.overlay);
+    const overlayRect = this.overlay.getBoundingClientRect();
+    const uiScale = overlayUiScale(overlayRect.width);
 
     const labelEl = document.createElement('div');
     labelEl.className = 'gold-sell-label';
@@ -77,7 +81,7 @@ export class GoldSellFx {
       coins.push({
         el,
         angle: (Math.PI * 2 * i) / GOLD_SELL_COIN_COUNT + Math.random() * 0.4,
-        popDist: 28 + Math.random() * 22,
+        popDist: (28 + Math.random() * 22) * uiScale,
       });
     }
 
@@ -91,6 +95,7 @@ export class GoldSellFx {
       phase: 'pop',
       labelEl,
       coins,
+      uiScale,
       onComplete,
     };
   }
@@ -101,13 +106,14 @@ export class GoldSellFx {
     }
 
     const fx = this.active;
+    const s = fx.uiScale;
     fx.elapsed += dt;
 
     if (fx.phase === 'pop') {
       const t = Math.min(1, fx.elapsed / GOLD_SELL_POP_DURATION);
       const scale = t < 1 ? easeOutBack(t) * 1.35 : 1.35;
       const popT = Math.min(1, t * 1.2);
-      const labelY = fx.startY - 18 * easeOutBack(Math.min(1, t * 1.5));
+      const labelY = fx.startY - 18 * s * easeOutBack(Math.min(1, t * 1.5));
 
       fx.labelEl.style.left = `${fx.startX}px`;
       fx.labelEl.style.top = `${labelY}px`;
@@ -117,7 +123,7 @@ export class GoldSellFx {
       for (const coin of fx.coins) {
         const dist = coin.popDist * popT;
         const x = fx.startX + Math.cos(coin.angle) * dist;
-        const y = fx.startY + Math.sin(coin.angle) * dist - 12 * popT;
+        const y = fx.startY + Math.sin(coin.angle) * dist - 12 * s * popT;
         coin.el.style.left = `${x}px`;
         coin.el.style.top = `${y}px`;
         coin.el.style.opacity = String(0.4 + popT * 0.6);
@@ -134,7 +140,7 @@ export class GoldSellFx {
     const t = Math.min(1, fx.elapsed / GOLD_SELL_FLY_DURATION);
     const eased = easeInCubic(t);
     const x = fx.startX + (fx.targetX - fx.startX) * eased;
-    const y = fx.startY - 18 + (fx.targetY - (fx.startY - 18)) * eased;
+    const y = fx.startY - 18 * s + (fx.targetY - (fx.startY - 18 * s)) * eased;
     const scale = 1.35 - eased * 0.55;
     const opacity = 1 - eased * 0.85;
 
@@ -144,8 +150,8 @@ export class GoldSellFx {
     fx.labelEl.style.opacity = String(opacity);
 
     for (const coin of fx.coins) {
-      coin.el.style.left = `${x + Math.cos(coin.angle) * (1 - eased) * 12}px`;
-      coin.el.style.top = `${y + Math.sin(coin.angle) * (1 - eased) * 12}px`;
+      coin.el.style.left = `${x + Math.cos(coin.angle) * (1 - eased) * 12 * s}px`;
+      coin.el.style.top = `${y + Math.sin(coin.angle) * (1 - eased) * 12 * s}px`;
       coin.el.style.opacity = String(opacity);
       coin.el.style.transform = `translate(-50%, -50%) scale(${0.5 + (1 - eased) * 0.4})`;
     }

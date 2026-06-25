@@ -1,4 +1,4 @@
-import { getUiIconUrl, getUiPickupUrl, getCatSpriteUrl } from '../render/assets';
+import { getUiIconUrl, getUiPickupUrl, getRoleSpriteUrl } from '../render/assets';
 import type { HeldCats } from '../game/HeldCats';
 import type { Inventory, InventorySlot } from '../game/Inventory';
 import { FIRST_INVENTORY_SLOT, INVENTORY_SLOT_COUNT, PICKUP_SLOT_INDEX } from '../game/Inventory';
@@ -76,9 +76,10 @@ export class Hotbar {
     const pickupIcon = pickupSlot.querySelector('.pickup-icon') as HTMLElement;
     const pickupBadge = pickupSlot.querySelector('.count-badge') as HTMLElement;
     const heldCount = this.heldCats.getCount();
+    const topEntry = this.heldCats.getTopEntry();
 
-    if (heldCount > 0) {
-      pickupIcon.style.backgroundImage = `url(${getCatSpriteUrl()})`;
+    if (heldCount > 0 && topEntry) {
+      pickupIcon.style.backgroundImage = `url(${getRoleSpriteUrl(topEntry.nestLevel)})`;
       pickupBadge.textContent = String(heldCount);
       pickupBadge.style.display = '';
     } else {

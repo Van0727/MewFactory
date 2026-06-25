@@ -5,6 +5,7 @@ import {
   PLAYER_SPRITE_ANCHOR_X,
   PLAYER_SPRITE_ANCHOR_Y,
 } from '../config';
+import { scaleCanvasUi } from '../ui/uiScale';
 import { getRoleSprite } from './assets';
 import { prepareCatRoleSource } from './catSprite';
 import type { IsoOrigin } from './isometric';
@@ -42,7 +43,7 @@ function drawCatPriceLabel(
   origin: IsoOrigin,
 ): void {
   const { cx, cy } = getGridCellAnchor(gx, gy, origin);
-  const fontSize = Math.max(10, 13);
+  const fontSize = scaleCanvasUi(13, origin.viewScale);
   const labelY = cy - fontSize * 1.5;
   const text = `${getCatPrice(cat)}`;
   const fillStyle =
@@ -56,7 +57,7 @@ function drawCatPriceLabel(
   ctx.textBaseline = 'middle';
   ctx.fillStyle = fillStyle;
   ctx.strokeStyle = 'rgba(0,0,0,0.6)';
-  ctx.lineWidth = 3;
+  ctx.lineWidth = scaleCanvasUi(3, origin.viewScale);
   ctx.strokeText(text, 0, 0);
   ctx.fillText(text, 0, 0);
   ctx.restore();
@@ -70,7 +71,7 @@ export function drawNestSpawnCountdown(
   origin: IsoOrigin,
 ): void {
   const { cx, cy } = getGridCellAnchor(gx, gy, origin);
-  const fontSize = Math.max(10, 14);
+  const fontSize = scaleCanvasUi(14, origin.viewScale);
   const labelY = cy - fontSize * 1.4;
 
   ctx.save();
@@ -79,7 +80,7 @@ export function drawNestSpawnCountdown(
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#fff';
   ctx.strokeStyle = 'rgba(0,0,0,0.6)';
-  ctx.lineWidth = 3;
+  ctx.lineWidth = scaleCanvasUi(3, origin.viewScale);
   const text = `${Math.ceil(secondsRemaining)}s`;
   ctx.strokeText(text, cx, labelY);
   ctx.fillText(text, cx, labelY);
@@ -95,8 +96,9 @@ export function drawBoxCount(
   origin: IsoOrigin,
 ): void {
   const { cx, cy } = getGridCellAnchor(gx, gy, origin);
-  const barW = Math.max(48, 56);
-  const barH = Math.max(8, 10);
+  const barW = scaleCanvasUi(56, origin.viewScale);
+  const barH = scaleCanvasUi(10, origin.viewScale);
+  const barInset = scaleCanvasUi(1, origin.viewScale);
   const barX = cx - barW / 2;
   const barY = cy - barH * 2.2;
   const fillRatio = capacity > 0 ? Math.min(1, count / capacity) : 0;
@@ -108,17 +110,24 @@ export function drawBoxCount(
 
   if (fillRatio > 0) {
     ctx.fillStyle = '#ffd54f';
-    roundRect(ctx, barX + 1, barY + 1, (barW - 2) * fillRatio, barH - 2, (barH - 2) / 2);
+    roundRect(
+      ctx,
+      barX + barInset,
+      barY + barInset,
+      (barW - barInset * 2) * fillRatio,
+      barH - barInset * 2,
+      (barH - barInset * 2) / 2,
+    );
     ctx.fill();
   }
 
-  const fontSize = Math.max(9, 11);
+  const fontSize = scaleCanvasUi(11, origin.viewScale);
   ctx.font = `bold ${fontSize}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#fff';
   ctx.strokeStyle = 'rgba(0,0,0,0.55)';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = scaleCanvasUi(2, origin.viewScale);
   const text = `${count}/${capacity}`;
   ctx.strokeText(text, cx, barY + barH / 2);
   ctx.fillText(text, cx, barY + barH / 2);

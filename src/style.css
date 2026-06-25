@@ -13,9 +13,6 @@
   --color-accent-yellow: #ffd54f;
   --color-accent-gold: #f0a820;
   --radius-pill: 999px;
-  --radius-card: 16px;
-  --shadow-soft: 0 4px 16px rgba(107, 79, 168, 0.28);
-  --shadow-inset: inset 0 2px 6px rgba(255, 255, 255, 0.25);
 }
 
 html,
@@ -44,6 +41,10 @@ body {
   flex-direction: column;
   overflow: visible;
   container-type: size;
+  --radius-card: 1.6cqmin;
+  --shop-ui-scale: 1.5;
+  --shadow-soft: 0 0.4cqmin 1.6cqmin rgba(107, 79, 168, 0.28);
+  --shadow-inset: inset 0 0.2cqmin 0.6cqmin rgba(255, 255, 255, 0.25);
 }
 
 #game-container.is-intro #hotbar,
@@ -82,10 +83,10 @@ body {
   width: 100%;
   height: 100%;
   border: 0.65cqmin solid var(--color-ui-purple);
-  border-radius: calc(var(--radius-card) + 4px);
+  border-radius: calc(var(--radius-card) + 0.4cqmin);
   background: rgba(200, 170, 240, 0.25);
   box-shadow:
-    0 0 24px rgba(155, 123, 212, 0.45),
+    0 0 2.4cqmin rgba(155, 123, 212, 0.45),
     var(--shadow-soft),
     inset 0 0 0 0.35cqmin rgba(255, 255, 255, 0.45);
   overflow: hidden;
@@ -143,21 +144,33 @@ body {
   display: none;
 }
 
-.action-btn.start-game-btn {
-  padding: 1.5cqmin 4.5cqmin;
-  font-size: 2.875cqmin;
-  border-width: 0;
-  background: linear-gradient(180deg, #ffe066 0%, var(--color-accent-gold) 100%);
-  border-color: transparent;
-  color: #4a3200;
-  border-radius: var(--radius-pill);
-  box-shadow: var(--shadow-soft);
+.start-game-btn {
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  line-height: 0;
+  box-shadow: none;
   animation: start-game-bounce 2.2s ease-in-out infinite;
 }
 
-.action-btn.start-game-btn:hover:not(:disabled):not(.is-greyed) {
-  background: linear-gradient(180deg, #ffea80 0%, #f5b830 100%);
+.start-game-btn-img {
+  display: block;
+  height: 8cqmin;
+  width: auto;
+  max-width: 28cqmin;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.start-game-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
   animation-play-state: paused;
+}
+
+.start-game-btn:active:not(:disabled) {
+  filter: brightness(0.95);
 }
 
 @keyframes start-game-bounce {
@@ -219,7 +232,6 @@ body {
   left: 0;
   width: 100%;
   bottom: 0;
-  top: -2400px;
   pointer-events: none;
   overflow: visible;
   z-index: 5;
@@ -234,22 +246,22 @@ body {
 .gold-sell-label {
   position: absolute;
   font-weight: bold;
-  font-size: clamp(20px, 4.5cqmin, 36px);
+  font-size: 4.5cqmin;
   color: #ffe566;
   text-shadow:
-    0 0 10px rgba(255, 210, 50, 0.9),
-    0 2px 4px rgba(0, 0, 0, 0.85);
+    0 0 1cqmin rgba(255, 210, 50, 0.9),
+    0 0.2cqmin 0.4cqmin rgba(0, 0, 0, 0.85);
   white-space: nowrap;
   will-change: transform, left, top, opacity;
 }
 
 .gold-sell-coin {
   position: absolute;
-  width: clamp(8px, 1.6cqmin, 14px);
-  height: clamp(8px, 1.6cqmin, 14px);
+  width: 1.6cqmin;
+  height: 1.6cqmin;
   border-radius: 50%;
   background: radial-gradient(circle at 32% 28%, #fff9c0, #ffd700 45%, #c8960c);
-  box-shadow: 0 0 8px rgba(255, 215, 0, 0.85);
+  box-shadow: 0 0 0.8cqmin rgba(255, 215, 0, 0.85);
   will-change: transform, left, top, opacity;
 }
 
@@ -286,7 +298,7 @@ body {
   min-height: 0;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 -4px 20px rgba(107, 79, 168, 0.2);
+  box-shadow: 0 -0.4cqmin 2cqmin rgba(107, 79, 168, 0.2);
 }
 
 #hotbar-slots {
@@ -366,15 +378,15 @@ body {
   top: 50%;
   transform: translate(-50%, -50%) scale(0.85);
   padding: 2cqmin 4cqmin;
-  font-size: clamp(22px, 5.5cqmin, 42px);
+  font-size: 5.5cqmin;
   font-weight: bold;
   color: #ffe566;
   text-align: center;
   white-space: nowrap;
   background: rgba(0, 0, 0, 0.75);
-  border: 3px solid #f0c040;
-  border-radius: 8px;
-  text-shadow: 0 0 12px rgba(255, 210, 50, 0.85);
+  border: 0.28cqmin solid #f0c040;
+  border-radius: 0.75cqmin;
+  text-shadow: 0 0 1.2cqmin rgba(255, 210, 50, 0.85);
   pointer-events: none;
   opacity: 0;
   z-index: 30;
@@ -411,7 +423,7 @@ body {
   font-size: 1.6cqmin;
   font-weight: bold;
   color: #ddd;
-  text-shadow: 1px 1px 0 #000;
+  text-shadow: 0.12cqmin 0.12cqmin 0 #000;
   pointer-events: none;
   user-select: none;
 }
@@ -438,7 +450,7 @@ body {
   font-size: 1.8cqmin;
   font-weight: bold;
   color: #fff;
-  text-shadow: 1px 1px 0 #000;
+  text-shadow: 0.12cqmin 0.12cqmin 0 #000;
   pointer-events: none;
   user-select: none;
 }
@@ -454,9 +466,13 @@ body {
   background: linear-gradient(180deg, rgba(155, 123, 212, 0.95) 0%, rgba(90, 61, 150, 0.96) 100%);
   border: 0.2cqmin solid rgba(255, 255, 255, 0.35);
   border-radius: var(--radius-card);
-  width: 40cqmin;
+  width: 42cqmin;
+  min-width: 42cqmin;
+  max-width: 42cqmin;
   box-sizing: border-box;
   box-shadow: var(--shadow-soft);
+  transform: scale(var(--shop-ui-scale));
+  transform-origin: top right;
 }
 
 #building-shop-panel .shop-title {
@@ -474,10 +490,11 @@ body {
 
 .building-shop-items {
   display: grid;
-  grid-template-columns: 4.2cqmin auto 7.5cqmin 8.5cqmin;
+  grid-template-columns: 4.2cqmin minmax(0, 1fr) 8cqmin 8.5cqmin;
   column-gap: 0.85cqmin;
   row-gap: 0.55cqmin;
   align-items: center;
+  width: 100%;
 }
 
 .building-shop-row {
@@ -497,20 +514,24 @@ body {
   image-rendering: pixelated;
 }
 
+.building-shop-icon.building-shop-icon-cat-nest {
+  transform: rotate(90deg);
+}
+
 .building-shop-label {
   font-size: 2.1cqmin;
   color: #eee;
   font-weight: 600;
   white-space: nowrap;
   text-shadow:
-    1px 0 0 rgba(0, 0, 0, 0.85),
-    -1px 0 0 rgba(0, 0, 0, 0.85),
-    0 1px 0 rgba(0, 0, 0, 0.85),
-    0 -1px 0 rgba(0, 0, 0, 0.85),
-    1px 1px 0 rgba(0, 0, 0, 0.85),
-    -1px -1px 0 rgba(0, 0, 0, 0.85),
-    1px -1px 0 rgba(0, 0, 0, 0.85),
-    -1px 1px 0 rgba(0, 0, 0, 0.85);
+    0.1cqmin 0 0 rgba(0, 0, 0, 0.85),
+    -0.1cqmin 0 0 rgba(0, 0, 0, 0.85),
+    0 0.1cqmin 0 rgba(0, 0, 0, 0.85),
+    0 -0.1cqmin 0 rgba(0, 0, 0, 0.85),
+    0.1cqmin 0.1cqmin 0 rgba(0, 0, 0, 0.85),
+    -0.1cqmin -0.1cqmin 0 rgba(0, 0, 0, 0.85),
+    0.1cqmin -0.1cqmin 0 rgba(0, 0, 0, 0.85),
+    -0.1cqmin 0.1cqmin 0 rgba(0, 0, 0, 0.85);
 }
 
 .building-shop-price {
@@ -587,8 +608,10 @@ body {
   gap: 1cqmin;
   padding: 1.6cqmin;
   background: rgba(0, 0, 0, 0.65);
-  border: 2px solid #555;
-  border-radius: 4px;
+  border: 0.2cqmin solid #555;
+  border-radius: 0.4cqmin;
+  transform: scale(var(--shop-ui-scale));
+  transform-origin: top right;
 }
 
 .shop-title {
@@ -596,7 +619,7 @@ body {
   font-weight: bold;
   color: #ccc;
   text-align: center;
-  margin-bottom: 2px;
+  margin-bottom: 0.2cqmin;
 }
 
 .shop-btn {
@@ -605,8 +628,8 @@ body {
   font-family: inherit;
   color: #fff;
   background: #4a6a8a;
-  border: 2px solid #2a4a6a;
-  border-radius: 3px;
+  border: 0.2cqmin solid #2a4a6a;
+  border-radius: 0.3cqmin;
   cursor: pointer;
 }
 

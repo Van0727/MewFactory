@@ -68,6 +68,24 @@ export function getTileTopCorners(
   ];
 }
 
+/** 横向多格建筑顶面四边形（从 gx 起连续 widthCells 格） */
+export function getWideCellTopCorners(
+  gx: number,
+  gy: number,
+  widthCells: number,
+  origin: IsoOrigin,
+): [number, number][] {
+  const yBack = projectY(gy, origin);
+  const yFront = projectY(gy + 1, origin);
+
+  return [
+    [projectX(gx * TILE_WIDTH, gy, origin), yBack],
+    [projectX((gx + widthCells) * TILE_WIDTH, gy, origin), yBack],
+    [projectX((gx + widthCells) * TILE_WIDTH, gy + 1, origin), yFront],
+    [projectX(gx * TILE_WIDTH, gy + 1, origin), yFront],
+  ];
+}
+
 export function getTileFrontCorners(
   gx: number,
   gy: number,

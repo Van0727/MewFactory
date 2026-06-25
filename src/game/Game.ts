@@ -137,6 +137,7 @@ export class Game {
 
     window.addEventListener('resize', this.onResize);
     this.resizeObserver = new ResizeObserver(this.onResize);
+    this.resizeObserver.observe(this.gameContainer);
     this.resizeObserver.observe(canvas.parentElement ?? canvas);
     this.hotbar.select(PICKUP_SLOT_INDEX);
     this.updateActionButtons();
@@ -198,7 +199,7 @@ export class Game {
 
   private onResize = (): void => {
     this.renderer.resize();
-    this.heldCatStackOverlay.update(this.player, this.heldCats.getCount());
+    this.heldCatStackOverlay.update(this.player, this.heldCats.getStack());
   };
 
   private frame = (time: number): void => {
@@ -242,7 +243,7 @@ export class Game {
       getNestSpawnCountdown: (gx, gy) => this.simulation.getNestSpawnCountdown(gx, gy),
     });
 
-    this.heldCatStackOverlay.update(this.player, this.heldCats.getCount());
+    this.heldCatStackOverlay.update(this.player, this.heldCats.getStack());
 
     requestAnimationFrame(this.frame);
   };
@@ -408,11 +409,11 @@ export class Game {
 
   private autoBagFromBoxUnderPlayer(): void {
     const { gx, gy } = getPlayerCell(this.player);
-    const { count, value } = this.simulation.takeAllCatsFromBox(gx, gy);
-    if (count <= 0) {
+    const { entries } = this.simulation.takeAllCatsFromBox(gx, gy);
+    if (entries.length <= 0) {
       return;
     }
-    this.heldCats.add(count, value);
+    this.heldCats.addEntries(entries);
     this.hotbar.refresh();
     this.updateActionButtons();
   }

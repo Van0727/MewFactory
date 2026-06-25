@@ -8,10 +8,12 @@ import {
   GRID_SIZE,
   TILE_GROUND_BLEED_PX,
 } from '../config';
+import { scaleCanvasUi } from '../ui/uiScale';
 import { BuildingType, type Building } from '../game/Building';
 import type { Cat } from '../game/Cat';
 import type { Grid } from '../game/Grid';
 import type { Player } from '../game/Player';
+import { SELL_SHOP_GRID_CELL } from '../game/gridCoords';
 import { getPlayerFeetGridPos } from '../game/gridUtils';
 import { getSprite } from './assets';
 import { drawBuilding, drawHeldBuildingInCell } from './buildingDraw';
@@ -67,11 +69,13 @@ export class Renderer {
 
   showLoading(message = 'Loading...'): void {
     const rect = this.canvas.getBoundingClientRect();
+    const origin = computeOrigin(rect.width, rect.height, GRID_SIZE);
+    const fontSize = scaleCanvasUi(18, origin.viewScale);
     this.ctx.clearRect(0, 0, rect.width, rect.height);
     this.ctx.fillStyle = COLOR_BACKGROUND;
     this.ctx.fillRect(0, 0, rect.width, rect.height);
     this.ctx.fillStyle = '#ccc';
-    this.ctx.font = '18px sans-serif';
+    this.ctx.font = `${fontSize}px sans-serif`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
     this.ctx.fillText(message, rect.width / 2, rect.height / 2);
@@ -162,14 +166,19 @@ export class Renderer {
         }
       }
 
-      if (state.grid.isShop(tile.gx, tile.gy)) {
-        drawSellShop(this.ctx, tile.gx, tile.gy, this.origin);
-      }
-
       const buildingShop = state.grid.getBuildingShop(tile.gx, tile.gy);
       if (buildingShop) {
         drawBuildingShop(this.ctx, tile.gx, tile.gy, buildingShop, this.origin);
       }
+    }
+
+    if (state.grid.isShop(SELL_SHOP_GRID_CELL.gx, SELL_SHOP_GRID_CELL.gy)) {
+      drawSellShop(
+        this.ctx,
+        SELL_SHOP_GRID_CELL.gx,
+        SELL_SHOP_GRID_CELL.gy,
+        this.origin,
+      );
     }
 
     const sortedCats = [...state.cats].sort(

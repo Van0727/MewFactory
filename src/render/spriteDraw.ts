@@ -187,24 +187,37 @@ export function drawSquareOnIsoQuad(
   corners: [number, number][],
   bleedPx = TILE_BLEED_PX,
 ): void {
+  const size = getSourceSize(source);
+  drawRectOnIsoQuad(ctx, source, corners, size, size, bleedPx);
+}
+
+/** 非正方形贴图映射到等距四边形（如 512×256 出售商店） */
+export function drawRectOnIsoQuad(
+  ctx: CanvasRenderingContext2D,
+  source: CanvasImageSource,
+  corners: [number, number][],
+  sourceWidth: number,
+  sourceHeight: number,
+  bleedPx = TILE_BLEED_PX,
+): void {
   const expanded = expandCorners(corners, bleedPx);
   const [backLeft, backRight, , frontLeft] = expanded;
-  const size = getSourceSize(source);
   const pad = SOURCE_EDGE_PAD;
-  const sample = size + pad * 2;
+  const sampleW = sourceWidth + pad * 2;
+  const sampleH = sourceHeight + pad * 2;
 
   ctx.save();
   clipToPolygon(ctx, expanded);
   configureSpriteSmoothing(ctx);
   ctx.transform(
-    (backRight[0] - backLeft[0]) / sample,
-    (backRight[1] - backLeft[1]) / sample,
-    (frontLeft[0] - backLeft[0]) / sample,
-    (frontLeft[1] - backLeft[1]) / sample,
+    (backRight[0] - backLeft[0]) / sampleW,
+    (backRight[1] - backLeft[1]) / sampleW,
+    (frontLeft[0] - backLeft[0]) / sampleH,
+    (frontLeft[1] - backLeft[1]) / sampleH,
     backLeft[0],
     backLeft[1],
   );
-  ctx.drawImage(source, -pad, -pad, sample, sample);
+  ctx.drawImage(source, -pad, -pad, sampleW, sampleH);
   ctx.restore();
 }
 

@@ -1,3 +1,4 @@
+import { BuildingType } from '../game/Building';
 import {
   getBuildingConfigs,
   getBuildingPrice,
@@ -88,6 +89,9 @@ export class BuildingShopPanel {
 
       const icon = document.createElement('span');
       icon.className = 'building-shop-icon';
+      if (kind === BuildingType.CatNest) {
+        icon.classList.add('building-shop-icon-cat-nest');
+      }
       icon.style.backgroundImage = `url(${getBuildingSpriteUrl(cfg.spriteId)})`;
 
       const label = document.createElement('span');

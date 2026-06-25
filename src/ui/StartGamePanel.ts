@@ -1,3 +1,5 @@
+import { getStartButtonUrl } from '../render/assets';
+
 export class StartGamePanel {
   private container: HTMLElement;
   private onStart: () => void;
@@ -10,8 +12,15 @@ export class StartGamePanel {
 
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'action-btn start-game-btn';
-    btn.textContent = '开始游戏';
+    btn.className = 'start-game-btn';
+    btn.setAttribute('aria-label', 'start');
+
+    const img = document.createElement('img');
+    img.className = 'start-game-btn-img';
+    img.src = getStartButtonUrl();
+    img.alt = 'start';
+    btn.appendChild(img);
+
     btn.addEventListener('click', () => {
       this.onStart();
     });

@@ -632,8 +632,8 @@ const SOURCE_SCALE = 4;
 const CELL_SIZE = 64 * SOURCE_SCALE;
 const UI_SIZE = 32 * SOURCE_SCALE;
 
-const TILE_LIGHT = [240, 228, 255];
-const TILE_DARK = [218, 195, 245];
+const TILE_LIGHT = [248, 248, 248];
+const TILE_DARK = [210, 210, 210];
 
 function tintRgb(base, level, maxLevel, step = 16) {
   const t = maxLevel <= 1 ? 0 : (level - 1) / (maxLevel - 1);
@@ -679,14 +679,25 @@ for (let lv = 1; lv <= 4; lv++) {
   ]);
 }
 
+const TILE_ASSET_PATHS = new Set(['tiles/tile_light.png', 'tiles/tile_dark.png']);
+
 async function main() {
-  for (const [rel, canvas] of assets) {
+  const tilesOnly = process.argv.includes('--tiles-only');
+  const toWrite = tilesOnly
+    ? assets.filter(([rel]) => TILE_ASSET_PATHS.has(rel))
+    : assets;
+
+  for (const [rel, canvas] of toWrite) {
     const outPath = join(OUT, rel);
     await mkdir(dirname(outPath), { recursive: true });
     await writeFile(outPath, canvas.toPng());
     console.log('wrote', rel);
   }
-  console.log('Done — kawaii placeholder assets in public/assets/');
+  console.log(
+    tilesOnly
+      ? 'Done — ground tiles only in public/assets/tiles/'
+      : 'Done — kawaii placeholder assets in public/assets/',
+  );
 }
 
 main().catch((err) => {

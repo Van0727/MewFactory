@@ -18,7 +18,7 @@ export const TILE_BLEED_PX = 1.25;
 /** Outward overlap for ground tiles so neighbors cover each other's edges (CSS px). */
 export const TILE_GROUND_BLEED_PX = 1.5;
 /** Neutral fill drawn under every tile so any sub-pixel gap shows this, not the background. */
-export const COLOR_GROUND_BASE = '#d8c0f0';
+export const COLOR_GROUND_BASE = '#e8e8e8';
 /** 远处行宽相对近处的比例，越小纵深感越强 */
 export const PERSPECTIVE_MIN_SCALE = 0.7;
 export const PLAYER_SPEED = 4;
@@ -31,10 +31,10 @@ export const PLAYER_SPRITE_TILE_SCALE = 0.72;
 export const ROLE_SPRITE_SIZE_MULTIPLIER = 1.25;
 export const CAT_ROLE_SPRITE_TILE_SCALE =
   PLAYER_SPRITE_TILE_SCALE * ROLE_SPRITE_SIZE_MULTIPLIER;
-export const COLOR_LIGHT = '#f0e6ff';
-export const COLOR_DARK = '#dac6f5';
-export const COLOR_LIGHT_FRONT = '#b898dc';
-export const COLOR_DARK_FRONT = '#9b7bd4';
+export const COLOR_LIGHT = '#f5f5f5';
+export const COLOR_DARK = '#d8d8d8';
+export const COLOR_LIGHT_FRONT = '#c4c4c4';
+export const COLOR_DARK_FRONT = '#a8a8a8';
 export const COLOR_PLAYER = '#4a90d9';
 export const COLOR_BACKGROUND = '#d4b8f0';
 
@@ -45,6 +45,9 @@ export const COLOR_BUILDING_MUTATION_GATE = '#9b59b6';
 export const COLOR_BUILDING_PREVIEW = 'rgba(255, 255, 255, 0.45)';
 export const COLOR_TILE_PLACE_VALID = 'rgba(72, 180, 72, 0.5)';
 export const COLOR_TILE_PLACE_INVALID = 'rgba(230, 130, 50, 0.5)';
+
+/** 商店 UI（购买面板、地图名牌）整体缩放 */
+export const SHOP_UI_SCALE = 1.5;
 
 export const PACK_BOX_PULSE_DURATION = 0.25;
 export const CAT_ARRIVE_EPSILON = 0.04;

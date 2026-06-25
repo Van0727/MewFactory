@@ -1,32 +1,42 @@
-/** 玩家手里的小猫，无上限，可跨箱叠加。跟踪数量和累计价值。 */
+export interface HeldCatEntry {
+  nestLevel: number;
+  value: number;
+}
+
+/** 玩家手里的小猫，无上限，可跨箱叠加。按只记录品种与价值。 */
 export class HeldCats {
-  private count = 0;
-  private totalValue = 0;
+  private stack: HeldCatEntry[] = [];
 
   getCount(): number {
-    return this.count;
+    return this.stack.length;
   }
 
   getTotalValue(): number {
-    return this.totalValue;
+    return this.stack.reduce((sum, entry) => sum + entry.value, 0);
+  }
+
+  getStack(): readonly HeldCatEntry[] {
+    return this.stack;
+  }
+
+  getTopEntry(): HeldCatEntry | null {
+    return this.stack.at(-1) ?? null;
   }
 
   takeAll(): { count: number; value: number } {
-    const result = { count: this.count, value: this.totalValue };
-    this.count = 0;
-    this.totalValue = 0;
-    return result;
+    const count = this.stack.length;
+    const value = this.getTotalValue();
+    this.stack = [];
+    return { count, value };
   }
 
   clear(): void {
-    this.count = 0;
-    this.totalValue = 0;
+    this.stack = [];
   }
 
-  add(count: number, value = 0): void {
-    if (count > 0) {
-      this.count += count;
-      this.totalValue += value;
+  addEntries(entries: HeldCatEntry[]): void {
+    if (entries.length > 0) {
+      this.stack.push(...entries);
     }
   }
 }

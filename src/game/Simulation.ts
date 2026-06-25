@@ -14,6 +14,7 @@ import {
 } from '../data/buildings';
 import { BuildingType, Direction, type Building } from './Building';
 import { createCat, getBoxCenter, getCatCell, type Cat } from './Cat';
+import type { HeldCatEntry } from './HeldCats';
 import {
   ALL_DIRECTIONS,
   getNeighbor,
@@ -35,6 +36,8 @@ export class Simulation {
   private boxCounts: number[][];
   /** 每格包装箱累计的小猫总价值 */
   private boxValues: number[][];
+  /** 每格包装箱内每只猫的品种与价值 */
+  private boxCatStacks: HeldCatEntry[][][];
   private boxPulseElapsed = new Map<string, number>();
   private nestSpawnTimers = new Map<string, number>();
   private grid: Grid;
@@ -46,6 +49,9 @@ export class Simulation {
     );
     this.boxValues = Array.from({ length: GRID_SIZE }, () =>
       Array.from({ length: GRID_SIZE }, () => 0),
+    );
+    this.boxCatStacks = Array.from({ length: GRID_SIZE }, () =>
+      Array.from({ length: GRID_SIZE }, () => [] as HeldCatEntry[]),
     );
   }
 
@@ -91,20 +97,26 @@ export class Simulation {
     return Math.max(0, interval - elapsed);
   }
 
-  /** 取出包装箱内全部小猫，返回取出的数量和总价值 */
-  takeAllCatsFromBox(gx: number, gy: number): { count: number; value: number } {
+  /** 取出包装箱内全部小猫 */
+  takeAllCatsFromBox(gx: number, gy: number): {
+    entries: HeldCatEntry[];
+    count: number;
+    value: number;
+  } {
     const building = this.grid.get(gx, gy);
     if (building?.type !== BuildingType.PackingBox) {
-      return { count: 0, value: 0 };
+      return { entries: [], count: 0, value: 0 };
     }
-    const count = this.boxCounts[gy][gx];
+    const entries = this.boxCatStacks[gy][gx];
+    const count = entries.length;
     const value = this.boxValues[gy][gx];
     if (count <= 0) {
-      return { count: 0, value: 0 };
+      return { entries: [], count: 0, value: 0 };
     }
     this.boxCounts[gy][gx] = 0;
     this.boxValues[gy][gx] = 0;
-    return { count, value };
+    this.boxCatStacks[gy][gx] = [];
+    return { entries: [...entries], count, value };
   }
 
   onBuildingPlaced(
@@ -116,6 +128,7 @@ export class Simulation {
     if (building.type === BuildingType.PackingBox) {
       this.boxCounts[gy][gx] = 0;
       this.boxValues[gy][gx] = 0;
+      this.boxCatStacks[gy][gx] = [];
     }
     if (building.type === BuildingType.CatNest) {
       const key = this.cellKey(gx, gy);
@@ -132,6 +145,7 @@ export class Simulation {
     this.removeCatsInCell(gx, gy);
     this.boxCounts[gy][gx] = 0;
     this.boxValues[gy][gx] = 0;
+    this.boxCatStacks[gy][gx] = [];
     this.nestSpawnTimers.delete(this.cellKey(gx, gy));
     this.boxPulseElapsed.delete(this.cellKey(gx, gy));
   }
@@ -253,7 +267,7 @@ export class Simulation {
     }
   }
 
-  private tryPack(boxGx: number, boxGy: number, catPrice: number): void {
+  private tryPack(boxGx: number, boxGy: number, cat: Cat): void {
     const building = this.grid.get(boxGx, boxGy);
     if (building?.type !== BuildingType.PackingBox) {
       return;
@@ -264,7 +278,11 @@ export class Simulation {
     const capacity = getCatBoxCapacity(building.level);
     if (this.boxCounts[boxGy][boxGx] < capacity) {
       this.boxCounts[boxGy][boxGx]++;
-      this.boxValues[boxGy][boxGx] += catPrice;
+      this.boxValues[boxGy][boxGx] += cat.basePrice;
+      this.boxCatStacks[boxGy][boxGx].push({
+        nestLevel: cat.nestLevel,
+        value: cat.basePrice,
+      });
     }
   }
 
@@ -433,7 +451,7 @@ export class Simulation {
     if (dist <= Math.max(step, CAT_ARRIVE_EPSILON)) {
       cat.x = center.x;
       cat.y = center.y;
-      this.tryPack(gx, gy, cat.basePrice);
+      this.tryPack(gx, gy, cat);
       return true;
     }
 
