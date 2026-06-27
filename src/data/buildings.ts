@@ -89,10 +89,10 @@ export const BUILDING_CONFIGS: BuildingConfigMap = {
     { level: 5, name: '异次元口袋', rarity: 'UR', color: '#ff9800', spriteId: 'box_5', price: 500, capacity: 500 },
   ],
   MutationGate: [
-    { level: 1, name: '烧烤门', rarity: 'N', color: '#ffffff', spriteId: 'door_1', price: 100, priceMultiplier: 1.5, description: '着火啦！', effect: '小猫身上着火，可叠加火焰高度' },
-    { level: 2, name: '充气门', rarity: 'R', color: '#4caf50', spriteId: 'door_2', price: 200, priceMultiplier: 2.0, description: '变大变大！', effect: '小猫变大10%，可叠加' },
-    { level: 3, name: '精舞门', rarity: 'SR', color: '#2196f3', spriteId: 'door_3', price: 300, priceMultiplier: 2.5, description: 'Dancing！', effect: '小猫旋转速度增加50%，可叠加' },
-    { level: 4, name: '颠倒门', rarity: 'SSR', color: '#9c27b0', spriteId: 'door_4', price: 400, priceMultiplier: 3.0, description: '脚就是头！', effect: '小猫上下翻转，可反复触发' },
+    { level: 1, name: '充气门', rarity: 'N', color: '#ffffff', spriteId: 'door_2', price: 100, priceMultiplier: 1.5, description: '变大变大！', effect: '小猫变大10%，可叠加' },
+    { level: 2, name: '精舞门', rarity: 'R', color: '#4caf50', spriteId: 'door_3', price: 200, priceMultiplier: 2.0, description: 'Dancing！', effect: '小猫旋转速度增加50%，可叠加' },
+    { level: 3, name: '颠倒门', rarity: 'SR', color: '#2196f3', spriteId: 'door_4', price: 300, priceMultiplier: 2.5, description: '脚就是头！', effect: '小猫上下翻转，可反复触发' },
+    { level: 4, name: '烧烤门', rarity: 'SSR', color: '#9c27b0', spriteId: 'door_1', price: 400, priceMultiplier: 3.0, description: '着火啦！', effect: '小猫身上着火，可叠加火焰高度' },
   ],
 };
 

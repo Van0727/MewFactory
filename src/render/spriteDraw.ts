@@ -1,5 +1,6 @@
 import { BuildingType, Direction, type Building } from '../game/Building';
-import { TILE_BLEED_PX, TILE_GROUND_BLEED_PX } from '../config';
+import { BUILDING_GROUND_LIFT_PX, TILE_BLEED_PX, TILE_GROUND_BLEED_PX } from '../config';
+import { getImageDominantColor } from './imageColor';
 import { getTileTopCorners, type IsoOrigin } from './isometric';
 import { getCellAnchor, getGridCellAnchor } from './tileBounds';
 
@@ -233,6 +234,48 @@ function scaleCornersFromCenter(
   return corners.map(([x, y]) => [cx + (x - cx) * scale, cy + (y - cy) * scale]);
 }
 
+function offsetCornersY(corners: [number, number][], dy: number): [number, number][] {
+  return corners.map(([x, y]) => [x, y + dy]);
+}
+
+function fillPolygon(
+  ctx: CanvasRenderingContext2D,
+  corners: [number, number][],
+  color: string,
+): void {
+  if (corners.length < 3) {
+    return;
+  }
+  ctx.beginPath();
+  ctx.moveTo(corners[0][0], corners[0][1]);
+  for (let i = 1; i < corners.length; i++) {
+    ctx.lineTo(corners[i][0], corners[i][1]);
+  }
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+/** 建筑抬升后，用贴图主色填充前、左、右侧面 */
+function drawBuildingLiftSides(
+  ctx: CanvasRenderingContext2D,
+  groundCorners: [number, number][],
+  liftPx: number,
+  fillColor: string,
+): void {
+  const lifted = offsetCornersY(groundCorners, -liftPx);
+  const [gBackLeft, gBackRight, gFrontRight, gFrontLeft] = groundCorners;
+  const [, , lFrontRight, lFrontLeft] = lifted;
+  const lBackLeft = lifted[0];
+  const lBackRight = lifted[1];
+
+  ctx.save();
+  fillPolygon(ctx, [gFrontLeft, gFrontRight, lFrontRight, lFrontLeft], fillColor);
+  fillPolygon(ctx, [gBackLeft, gFrontLeft, lFrontLeft, lBackLeft], fillColor);
+  fillPolygon(ctx, [gBackRight, gFrontRight, lFrontRight, lBackRight], fillColor);
+  ctx.restore();
+}
+
 function borrowOffscreen(size: number): HTMLCanvasElement {
   const key = `sq${size}`;
   let canvas = offscreenPool.get(key);
@@ -303,6 +346,10 @@ export interface DrawSpriteInCellOptions {
   /** 源图归一化锚点 (0–1)，默认 0.5 为图像中心 */
   anchorX?: number;
   anchorY?: number;
+  /** 相对锚点的水平缩放（精舞左右翻） */
+  scaleX?: number;
+  /** 在绘制矩形内上下翻转图像（绕矩形中心，非锚点） */
+  flipVertical?: boolean;
 }
 
 export function drawSpriteInCell(
@@ -318,6 +365,28 @@ export function drawSpriteInCell(
   const source = prepareSquareSource(img, rotation, 1);
   const quad = scaleCornersFromCenter(corners, drawScale);
   drawSquareOnIsoQuad(ctx, source, quad, bleedPx);
+}
+
+/** 抬高 BUILDING_GROUND_LIFT_PX，间隙侧面用贴图主色填充（猫窝、包装箱） */
+export function drawLiftedBuildingInCell(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  gx: number,
+  gy: number,
+  origin: IsoOrigin,
+  options: DrawSpriteInCellOptions = {},
+): void {
+  const corners = getTileTopCorners(gx, gy, origin);
+  const { rotation = 0, drawScale = 1, bleedPx = TILE_BLEED_PX } = options;
+  const quad = scaleCornersFromCenter(corners, drawScale);
+  const liftPx = BUILDING_GROUND_LIFT_PX;
+  const source = prepareSquareSource(img, rotation, 1);
+  const fillColor = getImageDominantColor(img);
+
+  drawBuildingLiftSides(ctx, quad, liftPx, fillColor);
+
+  const liftedQuad = offsetCornersY(quad, -liftPx);
+  drawSquareOnIsoQuad(ctx, source, liftedQuad, bleedPx);
 }
 
 export function getFlatSpriteSize(gx: number, gy: number, origin: IsoOrigin): number {
@@ -355,6 +424,50 @@ export function drawSpriteFlatInCell(
   ctx.restore();
 }
 
+/**
+ * 在任意屏幕坐标锚点绘制小猫 role（与 drawRoleFlatInCell 相同翻转/锚点逻辑）。
+ * flatSize：未乘 drawScale 的格内基准边长。
+ */
+export function drawRoleFlatAtPoint(
+  ctx: CanvasRenderingContext2D,
+  source: CanvasImageSource,
+  cx: number,
+  cy: number,
+  flatSize: number,
+  options: DrawSpriteInCellOptions = {},
+): void {
+  const {
+    rotation = 0,
+    drawScale = 1,
+    anchorX = 0.5,
+    anchorY = 0.5,
+    scaleX = 1,
+    flipVertical = false,
+  } = options;
+  const prepared = prepareRoleFlatSource(source, rotation);
+  const drawSize = flatSize * drawScale;
+  const anchorPxX = drawSize * anchorX;
+  const anchorPxY = drawSize * anchorY;
+  const left = cx - anchorPxX;
+  const top = cy - anchorPxY;
+
+  ctx.save();
+  configureSpriteSmoothing(ctx);
+
+  if (flipVertical) {
+    // 颠倒门：绕绘制区域中心上下翻，占位与未颠倒时相同
+    ctx.translate(left + drawSize / 2, top + drawSize / 2);
+    ctx.scale(scaleX, -1);
+    ctx.drawImage(prepared, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+  } else {
+    ctx.translate(cx, cy);
+    ctx.scale(scaleX, 1);
+    ctx.drawImage(prepared, -anchorPxX, -anchorPxY, drawSize, drawSize);
+  }
+
+  ctx.restore();
+}
+
 /** 无透视：小猫 role 专用，支持任意缩放且不被离屏画布裁切 */
 export function drawRoleFlatInCell(
   ctx: CanvasRenderingContext2D,
@@ -366,21 +479,7 @@ export function drawRoleFlatInCell(
 ): void {
   const { cx, cy } = getGridCellAnchor(gx, gy, origin);
   const size = getFlatSpriteSize(gx, gy, origin);
-  const {
-    rotation = 0,
-    drawScale = 1,
-    anchorX = 0.5,
-    anchorY = 0.5,
-  } = options;
-  const prepared = prepareRoleFlatSource(source, rotation);
-  const drawSize = size * drawScale;
-  const anchorPxX = drawSize * anchorX;
-  const anchorPxY = drawSize * anchorY;
-
-  ctx.save();
-  configureSpriteSmoothing(ctx);
-  ctx.drawImage(prepared, cx - anchorPxX, cy - anchorPxY, drawSize, drawSize);
-  ctx.restore();
+  drawRoleFlatAtPoint(ctx, source, cx, cy, size, options);
 }
 
 export function drawSpriteInIsoTile(

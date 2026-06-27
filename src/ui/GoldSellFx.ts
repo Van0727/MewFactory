@@ -1,8 +1,9 @@
 import {
-  GOLD_SELL_COIN_COUNT,
   GOLD_SELL_FLY_DURATION,
   GOLD_SELL_POP_DURATION,
+  getGoldSellCoinCount,
 } from '../config';
+import { getGoldChickUrl } from '../render/assets';
 import { gridCellToOverlayPoint } from '../render/overlayCoords';
 import { overlayUiScale } from './uiScale';
 import type { GoldBar } from './GoldBar';
@@ -11,6 +12,8 @@ interface CoinParticle {
   el: HTMLElement;
   angle: number;
   popDist: number;
+  popX: number;
+  popY: number;
 }
 
 interface ActiveSellFx {
@@ -58,7 +61,13 @@ export class GoldSellFx {
     this.overlay.appendChild(this.layer);
   }
 
-  play(gx: number, gy: number, amount: number, onComplete: () => void): void {
+  play(
+    gx: number,
+    gy: number,
+    amount: number,
+    onComplete: () => void,
+    coinCount = getGoldSellCoinCount(1),
+  ): void {
     if (this.active) {
       this.finishActive();
     }
@@ -74,14 +83,18 @@ export class GoldSellFx {
     this.layer.appendChild(labelEl);
 
     const coins: CoinParticle[] = [];
-    for (let i = 0; i < GOLD_SELL_COIN_COUNT; i++) {
+    const coinUrl = getGoldChickUrl();
+    for (let i = 0; i < coinCount; i++) {
       const el = document.createElement('div');
       el.className = 'gold-sell-coin';
+      el.style.backgroundImage = `url(${coinUrl})`;
       this.layer.appendChild(el);
       coins.push({
         el,
-        angle: (Math.PI * 2 * i) / GOLD_SELL_COIN_COUNT + Math.random() * 0.4,
-        popDist: (28 + Math.random() * 22) * uiScale,
+        angle: (Math.PI * 2 * i) / coinCount + Math.random() * 0.5,
+        popDist: (42 + Math.random() * 36) * uiScale,
+        popX: start.x,
+        popY: start.y,
       });
     }
 
@@ -123,11 +136,13 @@ export class GoldSellFx {
       for (const coin of fx.coins) {
         const dist = coin.popDist * popT;
         const x = fx.startX + Math.cos(coin.angle) * dist;
-        const y = fx.startY + Math.sin(coin.angle) * dist - 12 * s * popT;
+        const y = fx.startY + Math.sin(coin.angle) * dist - 16 * s * popT;
+        coin.popX = x;
+        coin.popY = y;
         coin.el.style.left = `${x}px`;
         coin.el.style.top = `${y}px`;
-        coin.el.style.opacity = String(0.4 + popT * 0.6);
-        coin.el.style.transform = `translate(-50%, -50%) scale(${0.6 + popT * 0.6})`;
+        coin.el.style.opacity = String(0.5 + popT * 0.5);
+        coin.el.style.transform = `translate(-50%, -50%) scale(${0.55 + popT * 0.75})`;
       }
 
       if (t >= 1) {
@@ -139,8 +154,9 @@ export class GoldSellFx {
 
     const t = Math.min(1, fx.elapsed / GOLD_SELL_FLY_DURATION);
     const eased = easeInCubic(t);
+    const labelY0 = fx.startY - 18 * s;
     const x = fx.startX + (fx.targetX - fx.startX) * eased;
-    const y = fx.startY - 18 * s + (fx.targetY - (fx.startY - 18 * s)) * eased;
+    const y = labelY0 + (fx.targetY - labelY0) * eased;
     const scale = 1.35 - eased * 0.55;
     const opacity = 1 - eased * 0.85;
 
@@ -149,11 +165,20 @@ export class GoldSellFx {
     fx.labelEl.style.transform = `translate(-50%, -50%) scale(${scale})`;
     fx.labelEl.style.opacity = String(opacity);
 
-    for (const coin of fx.coins) {
-      coin.el.style.left = `${x + Math.cos(coin.angle) * (1 - eased) * 12 * s}px`;
-      coin.el.style.top = `${y + Math.sin(coin.angle) * (1 - eased) * 12 * s}px`;
-      coin.el.style.opacity = String(opacity);
-      coin.el.style.transform = `translate(-50%, -50%) scale(${0.5 + (1 - eased) * 0.4})`;
+    const coinCount = fx.coins.length;
+    for (let i = 0; i < coinCount; i++) {
+      const coin = fx.coins[i];
+      const stagger = (i / coinCount) * 0.18;
+      const coinT = Math.min(1, Math.max(0, (t - stagger) / (1 - stagger * 0.5)));
+      const coinEased = easeInCubic(coinT);
+      const cx = coin.popX + (fx.targetX - coin.popX) * coinEased;
+      const cy = coin.popY + (fx.targetY - coin.popY) * coinEased;
+      const coinScale = 1.3 - coinEased * 0.75;
+      const coinOpacity = 1 - coinEased * 0.9;
+      coin.el.style.left = `${cx}px`;
+      coin.el.style.top = `${cy}px`;
+      coin.el.style.opacity = String(coinOpacity);
+      coin.el.style.transform = `translate(-50%, -50%) scale(${coinScale})`;
     }
 
     if (t >= 1) {

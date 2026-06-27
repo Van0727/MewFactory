@@ -1,5 +1,10 @@
 import type { Cat } from '../game/Cat';
-import { getCatPrice, getCatPulseScale } from '../game/Cat';
+import {
+  getCatDanceScaleX,
+  getCatInflateScale,
+  getCatPrice,
+  getCatPulseScale,
+} from '../game/Cat';
 import {
   CAT_ROLE_SPRITE_TILE_SCALE,
   PLAYER_SPRITE_ANCHOR_X,
@@ -7,7 +12,7 @@ import {
 } from '../config';
 import { scaleCanvasUi } from '../ui/uiScale';
 import { getRoleSprite } from './assets';
-import { prepareCatRoleSource } from './catSprite';
+import { prepareCatRoleSource, getCatRoleSourceDrawScaleMultiplier } from './catSprite';
 import type { IsoOrigin } from './isometric';
 import { getGridCellAnchor } from './tileBounds';
 import { drawRoleFlatInCell } from './spriteDraw';
@@ -22,14 +27,18 @@ export function drawCat(
   const pulseScale = cat.pulseAnim
     ? getCatPulseScale(cat.pulseAnim.elapsed)
     : 1;
-  const inflateScale = 1 + 0.1 * cat.mutations.inflateStacks;
-  const drawScale = CAT_ROLE_SPRITE_TILE_SCALE * inflateScale * pulseScale;
+  const inflateScale = getCatInflateScale(cat.mutations);
   const roleImg = getRoleSprite(cat.nestLevel);
   const source = prepareCatRoleSource(roleImg, cat.mutations);
+  const sourceScale = getCatRoleSourceDrawScaleMultiplier(source, roleImg);
+  const drawScale =
+    CAT_ROLE_SPRITE_TILE_SCALE * inflateScale * pulseScale * sourceScale;
   drawRoleFlatInCell(ctx, source, gx, gy, origin, {
     drawScale,
     anchorX: PLAYER_SPRITE_ANCHOR_X,
     anchorY: PLAYER_SPRITE_ANCHOR_Y,
+    scaleX: getCatDanceScaleX(cat.mutations),
+    flipVertical: cat.mutations.flipCount % 2 === 1,
   });
   drawCatPriceLabel(ctx, gx, gy, cat, pulseScale, origin);
 }

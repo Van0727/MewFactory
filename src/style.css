@@ -257,11 +257,12 @@ body {
 
 .gold-sell-coin {
   position: absolute;
-  width: 1.6cqmin;
-  height: 1.6cqmin;
-  border-radius: 50%;
-  background: radial-gradient(circle at 32% 28%, #fff9c0, #ffd700 45%, #c8960c);
-  box-shadow: 0 0 0.8cqmin rgba(255, 215, 0, 0.85);
+  width: 2.8cqmin;
+  height: 2.8cqmin;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  filter: drop-shadow(0 0 0.6cqmin rgba(255, 215, 0, 0.75));
   will-change: transform, left, top, opacity;
 }
 

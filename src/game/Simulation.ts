@@ -13,8 +13,8 @@ import {
   getDoorMultiplier,
 } from '../data/buildings';
 import { BuildingType, Direction, type Building } from './Building';
-import { createCat, getBoxCenter, getCatCell, type Cat } from './Cat';
-import type { HeldCatEntry } from './HeldCats';
+import { createCat, getBoxCenter, getCatCell, getCatDanceSpeedMultiplier, type Cat } from './Cat';
+import type { HeldCatEntry, HeldCatDisplayState } from './HeldCats';
 import {
   ALL_DIRECTIONS,
   getNeighbor,
@@ -38,6 +38,8 @@ export class Simulation {
   private boxValues: number[][];
   /** 每格包装箱内每只猫的品种与价值 */
   private boxCatStacks: HeldCatEntry[][][];
+  /** 每格包装箱首只进入猫的形态基准（箱清空后下一只重新设定） */
+  private boxDisplayBaselines: (HeldCatDisplayState | null)[][];
   private boxPulseElapsed = new Map<string, number>();
   private nestSpawnTimers = new Map<string, number>();
   private grid: Grid;
@@ -52,6 +54,9 @@ export class Simulation {
     );
     this.boxCatStacks = Array.from({ length: GRID_SIZE }, () =>
       Array.from({ length: GRID_SIZE }, () => [] as HeldCatEntry[]),
+    );
+    this.boxDisplayBaselines = Array.from({ length: GRID_SIZE }, () =>
+      Array.from({ length: GRID_SIZE }, () => null as HeldCatDisplayState | null),
     );
   }
 
@@ -113,10 +118,21 @@ export class Simulation {
     if (count <= 0) {
       return { entries: [], count: 0, value: 0 };
     }
+    const baseline = this.boxDisplayBaselines[gy][gx] ?? {
+      nestLevel: entries[0].nestLevel,
+      inflateStacks: 0,
+      barbecueStacks: 0,
+      flipCount: 0,
+    };
+    const entriesWithDisplay = entries.map((entry) => ({
+      ...entry,
+      display: { ...baseline },
+    }));
     this.boxCounts[gy][gx] = 0;
     this.boxValues[gy][gx] = 0;
     this.boxCatStacks[gy][gx] = [];
-    return { entries: [...entries], count, value };
+    this.boxDisplayBaselines[gy][gx] = null;
+    return { entries: entriesWithDisplay, count, value };
   }
 
   onBuildingPlaced(
@@ -129,6 +145,7 @@ export class Simulation {
       this.boxCounts[gy][gx] = 0;
       this.boxValues[gy][gx] = 0;
       this.boxCatStacks[gy][gx] = [];
+      this.boxDisplayBaselines[gy][gx] = null;
     }
     if (building.type === BuildingType.CatNest) {
       const key = this.cellKey(gx, gy);
@@ -146,6 +163,7 @@ export class Simulation {
     this.boxCounts[gy][gx] = 0;
     this.boxValues[gy][gx] = 0;
     this.boxCatStacks[gy][gx] = [];
+    this.boxDisplayBaselines[gy][gx] = null;
     this.nestSpawnTimers.delete(this.cellKey(gx, gy));
     this.boxPulseElapsed.delete(this.cellKey(gx, gy));
   }
@@ -214,16 +232,16 @@ export class Simulation {
 
     switch (gate.level) {
       case 1:
-        cat.mutations.barbecueStacks++;
-        break;
-      case 2:
         cat.mutations.inflateStacks++;
         break;
-      case 3:
+      case 2:
         cat.mutations.danceStacks++;
         break;
-      case 4:
+      case 3:
         cat.mutations.flipCount++;
+        break;
+      case 4:
+        cat.mutations.barbecueStacks++;
         break;
       default:
         break;
@@ -235,8 +253,11 @@ export class Simulation {
       if (cat.mutations.danceStacks <= 0) {
         continue;
       }
+      // 精舞门：驱动沿中轴左右翻转的相位角；每扇精舞门转速翻倍
       cat.mutations.danceAngle +=
-        dt * CAT_DANCE_BASE_SPIN_SPEED * (1 + 0.5 * cat.mutations.danceStacks);
+        dt *
+        CAT_DANCE_BASE_SPIN_SPEED *
+        getCatDanceSpeedMultiplier(cat.mutations);
     }
   }
 
@@ -276,7 +297,16 @@ export class Simulation {
     this.triggerBoxPulse(boxGx, boxGy);
 
     const capacity = getCatBoxCapacity(building.level);
+    const wasEmpty = this.boxCounts[boxGy][boxGx] === 0;
     if (this.boxCounts[boxGy][boxGx] < capacity) {
+      if (wasEmpty) {
+        this.boxDisplayBaselines[boxGy][boxGx] = {
+          nestLevel: cat.nestLevel,
+          inflateStacks: cat.mutations.inflateStacks,
+          barbecueStacks: cat.mutations.barbecueStacks,
+          flipCount: cat.mutations.flipCount,
+        };
+      }
       this.boxCounts[boxGy][boxGx]++;
       this.boxValues[boxGy][boxGx] += cat.basePrice;
       this.boxCatStacks[boxGy][boxGx].push({

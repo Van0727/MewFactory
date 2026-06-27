@@ -13,13 +13,14 @@ import { BuildingType, type Building } from '../game/Building';
 import type { Cat } from '../game/Cat';
 import type { Grid } from '../game/Grid';
 import type { Player } from '../game/Player';
-import { SELL_SHOP_GRID_CELL } from '../game/gridCoords';
+import { RECYCLE_DEPOT_GRID_CELL, SELL_SHOP_GRID_CELL } from '../game/gridCoords';
 import { getPlayerFeetGridPos } from '../game/gridUtils';
 import { getSprite } from './assets';
 import { drawBuilding, drawHeldBuildingInCell } from './buildingDraw';
 import { drawPlayerSprite } from './playerDraw';
 import { drawBoxCount, drawCat, drawNestSpawnCountdown, getCatSortY } from './catDraw';
 import { drawSellShop } from './shopDraw';
+import { drawRecycleDepot } from './recycleDepotDraw';
 import { drawBuildingShop } from './buildingShopDraw';
 import { getCatBoxCapacity } from '../data/buildings';
 import {
@@ -166,17 +167,26 @@ export class Renderer {
         }
       }
 
-      const buildingShop = state.grid.getBuildingShop(tile.gx, tile.gy);
-      if (buildingShop) {
-        drawBuildingShop(this.ctx, tile.gx, tile.gy, buildingShop, this.origin);
-      }
     }
+
+    state.grid.forEachBuildingShop((gx, gy, kind) => {
+      drawBuildingShop(this.ctx, gx, gy, kind, this.origin);
+    });
 
     if (state.grid.isShop(SELL_SHOP_GRID_CELL.gx, SELL_SHOP_GRID_CELL.gy)) {
       drawSellShop(
         this.ctx,
         SELL_SHOP_GRID_CELL.gx,
         SELL_SHOP_GRID_CELL.gy,
+        this.origin,
+      );
+    }
+
+    if (state.grid.isRecycleDepot(RECYCLE_DEPOT_GRID_CELL.gx, RECYCLE_DEPOT_GRID_CELL.gy)) {
+      drawRecycleDepot(
+        this.ctx,
+        RECYCLE_DEPOT_GRID_CELL.gx,
+        RECYCLE_DEPOT_GRID_CELL.gy,
         this.origin,
       );
     }

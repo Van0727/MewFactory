@@ -1,7 +1,7 @@
 import { BuildingType, type Building } from '../game/Building';
 import { getBuildingSprite } from './assets';
 import { type IsoOrigin } from './isometric';
-import { directionToAngleForBuilding, drawSpriteFlatInCell, drawSpriteInCell } from './spriteDraw';
+import { directionToAngleForBuilding, drawLiftedBuildingInCell, drawSpriteFlatInCell, drawSpriteInCell } from './spriteDraw';
 
 function buildingNeedsRotation(type: BuildingType): boolean {
   return (
@@ -9,6 +9,10 @@ function buildingNeedsRotation(type: BuildingType): boolean {
     type === BuildingType.Conveyor ||
     type === BuildingType.MutationGate
   );
+}
+
+function buildingUsesGroundLift(type: BuildingType): boolean {
+  return type === BuildingType.CatNest || type === BuildingType.PackingBox;
 }
 
 export function drawBuilding(
@@ -34,6 +38,11 @@ export function drawBuildingInCell(
   const rotation = buildingNeedsRotation(building.type)
     ? directionToAngleForBuilding(building)
     : 0;
+
+  if (buildingUsesGroundLift(building.type)) {
+    drawLiftedBuildingInCell(ctx, sprite, gx, gy, origin, { rotation, drawScale });
+    return;
+  }
 
   drawSpriteInCell(ctx, sprite, gx, gy, origin, { rotation, drawScale });
 }

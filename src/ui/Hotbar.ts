@@ -1,10 +1,12 @@
-import { getUiIconUrl, getUiPickupUrl, getRoleSpriteUrl } from '../render/assets';
+import { getUiIconUrl, getUiPickupUrl } from '../render/assets';
 import type { HeldCats } from '../game/HeldCats';
+import { drawHeldCatEntryCentered } from '../render/heldCatDraw';
 import type { Inventory, InventorySlot } from '../game/Inventory';
 import { FIRST_INVENTORY_SLOT, INVENTORY_SLOT_COUNT, PICKUP_SLOT_INDEX } from '../game/Inventory';
 
 const KEY_LABELS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 const SLOT_COUNT = INVENTORY_SLOT_COUNT + 1;
+const PICKUP_ICON_SIZE = 64;
 
 export class Hotbar {
   private slots: HTMLElement[] = [];
@@ -12,10 +14,22 @@ export class Hotbar {
   private slotListeners: Array<(index: number) => void> = [];
   private inventory: Inventory;
   private heldCats: HeldCats;
+  private pickupIconCanvas: HTMLCanvasElement;
+  private pickupIconCtx: CanvasRenderingContext2D;
 
   constructor(container: HTMLElement, inventory: Inventory, heldCats: HeldCats) {
     this.inventory = inventory;
     this.heldCats = heldCats;
+
+    this.pickupIconCanvas = document.createElement('canvas');
+    this.pickupIconCanvas.width = PICKUP_ICON_SIZE;
+    this.pickupIconCanvas.height = PICKUP_ICON_SIZE;
+    const pickupIconCtx = this.pickupIconCanvas.getContext('2d');
+    if (!pickupIconCtx) {
+      throw new Error('Failed to get pickup icon 2D context');
+    }
+    this.pickupIconCtx = pickupIconCtx;
+
     container.innerHTML = '';
 
     for (let i = 0; i < SLOT_COUNT; i++) {
@@ -79,7 +93,9 @@ export class Hotbar {
     const topEntry = this.heldCats.getTopEntry();
 
     if (heldCount > 0 && topEntry) {
-      pickupIcon.style.backgroundImage = `url(${getRoleSpriteUrl(topEntry.nestLevel)})`;
+      this.pickupIconCtx.clearRect(0, 0, PICKUP_ICON_SIZE, PICKUP_ICON_SIZE);
+      drawHeldCatEntryCentered(this.pickupIconCtx, topEntry, PICKUP_ICON_SIZE);
+      pickupIcon.style.backgroundImage = `url(${this.pickupIconCanvas.toDataURL()})`;
       pickupBadge.textContent = String(heldCount);
       pickupBadge.style.display = '';
     } else {

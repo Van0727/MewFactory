@@ -1,5 +1,6 @@
 import type { Building } from './Building';
 import { buildingStackKey } from './Building';
+import { getBuildingPrice } from '../data/buildings';
 
 export interface InventorySlot {
   building: Building;
@@ -75,5 +76,23 @@ export class Inventory {
 
   clear(): void {
     this.slots = Array.from({ length: INVENTORY_SLOT_COUNT }, () => null);
+  }
+
+  /** 按购买原价回收全部堆叠建筑 */
+  sellAll(): { amount: number; count: number } {
+    let amount = 0;
+    let count = 0;
+
+    for (const slot of this.slots) {
+      if (!slot) {
+        continue;
+      }
+      const unitPrice = getBuildingPrice(slot.building.type, slot.building.level);
+      amount += unitPrice * slot.count;
+      count += slot.count;
+    }
+
+    this.clear();
+    return { amount, count };
   }
 }

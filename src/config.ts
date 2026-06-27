@@ -50,19 +50,35 @@ export const COLOR_TILE_PLACE_INVALID = 'rgba(230, 130, 50, 0.5)';
 export const SHOP_UI_SCALE = 1.5;
 
 export const PACK_BOX_PULSE_DURATION = 0.25;
+/** 猫窝/包装箱相对地面抬升高度（CSS px），侧面用贴图主色填充 */
+export const BUILDING_GROUND_LIFT_PX = 20;
 export const CAT_ARRIVE_EPSILON = 0.04;
 /** 小猫经过变异门时的缩放脉冲时长（秒） */
 export const CAT_MUTATION_PULSE_DURATION = 0.35;
 /** 小猫经过变异门时的缩放峰值 */
 export const CAT_MUTATION_PULSE_PEAK_SCALE = 1.2;
-/** 精舞门基础旋转速度（弧度/秒），层数越高再 ×(1 + 0.5×stacks) */
+/** 精舞门基础翻转速度（弧度/秒），层数越高再 ×(1 + 0.5×stacks) */
 export const CAT_DANCE_BASE_SPIN_SPEED = Math.PI * 2;
 
 /** 出售金币飞出动画：弹出阶段时长（秒） */
 export const GOLD_SELL_POP_DURATION = 0.45;
 /** 出售金币飞出动画：飞向顶部 UI 时长（秒） */
 export const GOLD_SELL_FLY_DURATION = 0.55;
-export const GOLD_SELL_COIN_COUNT = 10;
+/** 出售金币飞出：每只小猫对应金币粒子数 */
+export const GOLD_SELL_COIN_PER_CAT = 4;
+/** 出售金币飞出：最少 / 最多粒子数 */
+export const GOLD_SELL_COIN_MIN = 8;
+export const GOLD_SELL_COIN_MAX = 96;
+
+export function getGoldSellCoinCount(catCount: number): number {
+  if (catCount <= 0) {
+    return 0;
+  }
+  return Math.min(
+    GOLD_SELL_COIN_MAX,
+    Math.max(GOLD_SELL_COIN_MIN, catCount * GOLD_SELL_COIN_PER_CAT),
+  );
+}
 
 /** 重生：初始金币产出倍率 */
 export const REBIRTH_INITIAL_GOLD_MULTIPLIER = 1;

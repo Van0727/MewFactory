@@ -1,3 +1,4 @@
+import { getGoldSellCoinCount } from '../config';
 import { InputManager } from '../input/InputManager';
 import { Renderer } from '../render/Renderer';
 import { ActionButtons } from '../ui/ActionButtons';
@@ -364,12 +365,37 @@ export class Game {
       this.sellAllHeldCats();
     }
 
+    if (this.grid.isRecycleDepot(gx, gy)) {
+      this.sellAllInventoryBuildings();
+    }
+
     const buildingShop = this.grid.getBuildingShop(gx, gy);
     if (buildingShop) {
       this.buildingShopPanel.open(buildingShop);
     } else {
       this.buildingShopPanel.close();
     }
+  }
+
+  private sellAllInventoryBuildings(): void {
+    const { amount, count } = this.inventory.sellAll();
+    if (count <= 0) {
+      return;
+    }
+
+    this.enterPickupMode();
+    this.hotbar.select(PICKUP_SLOT_INDEX);
+    this.hotbar.refresh();
+    this.updateActionButtons();
+
+    const { gx, gy } = getPlayerCell(this.player);
+    this.goldSellFx.play(gx, gy, amount, () => {
+      this.playerGold.add(amount);
+      this.goldBar.refresh();
+      this.goldBar.pulseReceive();
+      this.rebirthPanel.refresh();
+      this.buildingShopPanel.refresh();
+    }, getGoldSellCoinCount(count));
   }
 
   private sellAllHeldCats(): void {
@@ -389,7 +415,7 @@ export class Game {
       this.goldBar.pulseReceive();
       this.rebirthPanel.refresh();
       this.buildingShopPanel.refresh();
-    });
+    }, getGoldSellCoinCount(count));
   }
 
   private tryRebirth(): void {

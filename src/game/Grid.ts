@@ -6,6 +6,7 @@ export class Grid {
   private cells: (Building | null)[][];
   private mutationGates: (Building | null)[][];
   private shopCells = new Set<string>();
+  private recycleDepotCells = new Set<string>();
   private buildingShopCells = new Map<string, BuildingShopKind>();
 
   constructor() {
@@ -70,7 +71,10 @@ export class Grid {
 
   isEmpty(gx: number, gy: number): boolean {
     return (
-      this.get(gx, gy) === null && !this.isShop(gx, gy) && !this.isBuildingShop(gx, gy)
+      this.get(gx, gy) === null &&
+      !this.isShop(gx, gy) &&
+      !this.isBuildingShop(gx, gy) &&
+      !this.isRecycleDepot(gx, gy)
     );
   }
 
@@ -101,6 +105,17 @@ export class Grid {
       return;
     }
     this.shopCells.add(this.cellKey(gx, gy));
+  }
+
+  markRecycleDepot(gx: number, gy: number): void {
+    if (!this.inBounds(gx, gy)) {
+      return;
+    }
+    this.recycleDepotCells.add(this.cellKey(gx, gy));
+  }
+
+  isRecycleDepot(gx: number, gy: number): boolean {
+    return this.recycleDepotCells.has(this.cellKey(gx, gy));
   }
 
   isShop(gx: number, gy: number): boolean {

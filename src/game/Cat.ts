@@ -103,6 +103,35 @@ export function getCatPulseScale(
   return 1 + (peakScale - 1) * Math.sin(t * Math.PI);
 }
 
+/** 充气门：每层体型 ×1.25（可叠加） */
+export function getCatInflateScale(mutations: CatMutationState): number {
+  if (mutations.inflateStacks <= 0) {
+    return 1;
+  }
+  return Math.pow(1.25, mutations.inflateStacks);
+}
+
+/** 精舞门转速倍率：每经过一扇门翻倍（2^stacks） */
+export function getCatDanceSpeedMultiplier(mutations: CatMutationState): number {
+  if (mutations.danceStacks <= 0) {
+    return 1;
+  }
+  return Math.pow(2, mutations.danceStacks);
+}
+
+/** 精舞门：沿竖直中轴线左右翻转（cos 在 1 ↔ -1 之间，非顺时针旋转） */
+export function getCatDanceScaleX(mutations: CatMutationState): number {
+  if (mutations.danceStacks <= 0) {
+    return 1;
+  }
+  return Math.cos(mutations.danceAngle);
+}
+
+/** 是否被颠倒门上下翻转 */
+export function isCatFlipped(mutations: CatMutationState): boolean {
+  return mutations.flipCount % 2 === 1;
+}
+
 export function getBoxCenter(gx: number, gy: number): { x: number; y: number } {
   return { x: gx + 0.5, y: gy + 0.5 };
 }

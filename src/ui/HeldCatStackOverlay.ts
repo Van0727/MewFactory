@@ -1,13 +1,11 @@
 import type { Player } from '../game/Player';
 import type { HeldCatEntry } from '../game/HeldCats';
+import { drawHeldCatEntry } from '../render/heldCatDraw';
 import { getPlayerFeetGridPos } from '../game/gridUtils';
 import {
   CAT_ROLE_SPRITE_TILE_SCALE,
   GRID_SIZE,
-  PLAYER_SPRITE_ANCHOR_X,
-  PLAYER_SPRITE_ANCHOR_Y,
 } from '../config';
-import { getRoleSprite } from '../render/assets';
 import { computeOrigin } from '../render/isometric';
 import { gridCellToOverlayPoint } from '../render/overlayCoords';
 import { getFlatSpriteSize } from '../render/spriteDraw';
@@ -88,18 +86,14 @@ export class HeldCatStackOverlay {
     const flatSize = getFlatSpriteSize(gx, gy, origin);
     const drawSize = flatSize * CAT_ROLE_SPRITE_TILE_SCALE;
     const stepPx = drawSize * STACK_STEP_RATIO;
-    const anchorOffsetX = drawSize * PLAYER_SPRITE_ANCHOR_X;
-    const anchorOffsetY = drawSize * PLAYER_SPRITE_ANCHOR_Y;
 
     for (let i = 0; i < stack.length; i++) {
       const entry = stack[i];
-      const img = getRoleSprite(entry.nestLevel);
-      if (!img.complete) {
-        continue;
-      }
-      const y = anchorY - anchorOffsetY - stepPx * (i + 1);
-      this.ctx.drawImage(img, anchorX - anchorOffsetX, y, drawSize, drawSize);
-    }  }
+      // 锚点为猫脚：堆叠在玩家脚上方，不再误用「贴图顶边」坐标
+      const feetY = anchorY - stepPx * (i + 1);
+      drawHeldCatEntry(this.ctx, entry, anchorX, feetY, flatSize);
+    }
+  }
 
   destroy(): void {
     this.layer.remove();

@@ -1,4 +1,5 @@
 import { GRID_SIZE } from '../config';
+import { BUILDING_MAX_LEVEL } from '../data/buildings';
 import {
   BuildingType,
   createBuilding,
@@ -10,14 +11,40 @@ import type { Simulation } from './Simulation';
 interface PipelineLevels {
   nest: number;
   conveyor: number;
-  gate: number;
   box: number;
 }
 
-const MIN_LEVELS: PipelineLevels = { nest: 1, conveyor: 1, gate: 1, box: 1 };
-const MAX_LEVELS: PipelineLevels = { nest: 5, conveyor: 5, gate: 4, box: 5 };
+const MIN_LEVELS: PipelineLevels = { nest: 1, conveyor: 1, box: 1 };
+const CONVEYOR_COUNT = 6;
+const GATES_PER_PIPELINE = 3;
+const MAX_GATE_LEVEL = BUILDING_MAX_LEVEL.MutationGate;
 
-/** 猫窝 → 4 节传送带（第 2 节带变异门）→ 包装箱 */
+function levelsForDemoLine(lineLevel: number): PipelineLevels {
+  const level = Math.max(1, Math.min(5, lineLevel));
+  return {
+    nest: level,
+    conveyor: level,
+    box: level,
+  };
+}
+
+/** 从传送带节中随机选出若干节挂变异门 */
+function pickRandomGateIndices(conveyorCount: number, gateCount: number): number[] {
+  const pool = Array.from({ length: conveyorCount }, (_, i) => i);
+  const picked: number[] = [];
+  for (let g = 0; g < gateCount; g++) {
+    const pick = Math.floor(Math.random() * pool.length);
+    picked.push(pool[pick]);
+    pool.splice(pick, 1);
+  }
+  return picked.sort((a, b) => a - b);
+}
+
+function randomGateLevel(): number {
+  return 1 + Math.floor(Math.random() * MAX_GATE_LEVEL);
+}
+
+/** 猫窝 → 6 节传送带（随机 3 节挂 Lv.1~4 变异门）→ 包装箱 */
 function seedPipeline(
   grid: Grid,
   simulation: Simulation,
@@ -25,24 +52,25 @@ function seedPipeline(
   levels: PipelineLevels,
 ): void {
   const nestX = 0;
-  const conveyorCount = 4;
-  const boxX = nestX + 1 + conveyorCount;
-  const gateConveyorIndex = 1;
+  const boxX = nestX + 1 + CONVEYOR_COUNT;
+  const gateIndices = new Set(
+    pickRandomGateIndices(CONVEYOR_COUNT, GATES_PER_PIPELINE),
+  );
 
   const nest = createBuilding(BuildingType.CatNest, levels.nest, Direction.Right);
   grid.set(nestX, row, nest);
   simulation.onBuildingPlaced(nestX, row, nest, { nestSpawnImmediate: true });
 
-  for (let i = 0; i < conveyorCount; i++) {
+  for (let i = 0; i < CONVEYOR_COUNT; i++) {
     const gx = nestX + 1 + i;
     const conveyor = createBuilding(BuildingType.Conveyor, levels.conveyor, Direction.Right);
     grid.set(gx, row, conveyor);
     simulation.onBuildingPlaced(gx, row, conveyor);
 
-    if (i === gateConveyorIndex) {
+    if (gateIndices.has(i)) {
       const gate = createBuilding(
         BuildingType.MutationGate,
-        levels.gate,
+        randomGateLevel(),
         conveyor.direction,
       );
       grid.setMutationGate(gx, row, gate);
@@ -55,15 +83,13 @@ function seedPipeline(
 }
 
 /**
- * 五条全自动演示线：奇数行最低级，偶数行最高级，便于对比差异。
- * 行 0/2/4 → Lv.1；行 1/3 → Lv.5（变异门 Lv.4）
+ * 五条演示流水线：Lv.1 ~ Lv.5 猫窝/传送带/包装箱；每条 6 节传送带、3 个随机变异门。
  */
 export function seedDemoProductionLines(grid: Grid, simulation: Simulation): void {
   const rows = [0, 1, 2, 3, 4];
-  const levels = [MIN_LEVELS, MAX_LEVELS, MIN_LEVELS, MAX_LEVELS, MIN_LEVELS];
 
   for (let i = 0; i < rows.length; i++) {
-    seedPipeline(grid, simulation, rows[i], levels[i]);
+    seedPipeline(grid, simulation, rows[i], levelsForDemoLine(i + 1));
   }
 }
 
