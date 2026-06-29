@@ -1,16 +1,14 @@
-import type { BuildingShopKind } from '../game/buildingShopCatalog';
-import { getBuildingShopSprite } from './assets';
+import { getAttributeShopSprite } from './assets';
 import { getTileTopCorners, type IsoOrigin } from './isometric';
 import { drawSpriteInIsoTile } from './spriteDraw';
 
-export function drawBuildingShop(
+export function drawAttributeShop(
   ctx: CanvasRenderingContext2D,
   gx: number,
   gy: number,
-  kind: BuildingShopKind,
   origin: IsoOrigin,
 ): void {
   const topCorners = getTileTopCorners(gx, gy, origin);
-  const img = getBuildingShopSprite(kind);
+  const img = getAttributeShopSprite();
   drawSpriteInIsoTile(ctx, img, topCorners);
 }

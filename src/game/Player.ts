@@ -10,7 +10,7 @@ export class Player {
   x = Math.floor(GRID_SIZE / 2) + 0.5;
   y = Math.floor(GRID_SIZE / 2) + 0.5;
 
-  update(dt: number, input: MovementState): void {
+  update(dt: number, input: MovementState, moveSpeed = PLAYER_SPEED): void {
     let dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
     let dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
 
@@ -20,8 +20,8 @@ export class Player {
       dy *= inv;
     }
 
-    this.x = clamp(this.x + dx * PLAYER_SPEED * dt, 0, GRID_SIZE);
-    this.y = clamp(this.y + dy * PLAYER_SPEED * dt, 0, GRID_SIZE);
+    this.x = clamp(this.x + dx * moveSpeed * dt, 0, GRID_SIZE);
+    this.y = clamp(this.y + dy * moveSpeed * dt, 0, GRID_SIZE);
   }
 
   /** 朝目标点移动，到达后返回 true */

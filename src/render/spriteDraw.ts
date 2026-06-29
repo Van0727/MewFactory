@@ -1,5 +1,6 @@
 import { BuildingType, Direction, type Building } from '../game/Building';
 import { BUILDING_GROUND_LIFT_PX, TILE_BLEED_PX, TILE_GROUND_BLEED_PX } from '../config';
+import { scaleCanvasUi } from '../ui/uiScale';
 import { getImageDominantColor } from './imageColor';
 import { getTileTopCorners, type IsoOrigin } from './isometric';
 import { getCellAnchor, getGridCellAnchor } from './tileBounds';
@@ -350,6 +351,10 @@ export interface DrawSpriteInCellOptions {
   scaleX?: number;
   /** 在绘制矩形内上下翻转图像（绕矩形中心，非锚点） */
   flipVertical?: boolean;
+  /** 相对锚点的垂直偏移（屏幕像素，正数向下） */
+  offsetY?: number;
+  /** 抬升基准高度（CSS px，默认猫窝 BUILDING_GROUND_LIFT_PX） */
+  liftBasePx?: number;
 }
 
 export function drawSpriteInCell(
@@ -377,9 +382,9 @@ export function drawLiftedBuildingInCell(
   options: DrawSpriteInCellOptions = {},
 ): void {
   const corners = getTileTopCorners(gx, gy, origin);
-  const { rotation = 0, drawScale = 1, bleedPx = TILE_BLEED_PX } = options;
+  const { rotation = 0, drawScale = 1, bleedPx = TILE_BLEED_PX, liftBasePx = BUILDING_GROUND_LIFT_PX } = options;
   const quad = scaleCornersFromCenter(corners, drawScale);
-  const liftPx = BUILDING_GROUND_LIFT_PX;
+  const liftPx = scaleCanvasUi(liftBasePx, origin.viewScale) * drawScale;
   const source = prepareSquareSource(img, rotation, 1);
   const fillColor = getImageDominantColor(img);
 
@@ -412,6 +417,7 @@ export function drawSpriteFlatInCell(
     drawScale = 1,
     anchorX = 0.5,
     anchorY = 0.5,
+    offsetY = 0,
   } = options;
   const source = prepareSquareSource(img, rotation, drawScale);
   const drawSize = size * drawScale;
@@ -420,7 +426,13 @@ export function drawSpriteFlatInCell(
 
   ctx.save();
   configureSpriteSmoothing(ctx);
-  ctx.drawImage(source, cx - anchorPxX, cy - anchorPxY, drawSize, drawSize);
+  ctx.drawImage(
+    source,
+    cx - anchorPxX,
+    cy - anchorPxY + offsetY,
+    drawSize,
+    drawSize,
+  );
   ctx.restore();
 }
 

@@ -6,6 +6,7 @@ import { GoldBar } from '../ui/GoldBar';
 import { GoldSellFx } from '../ui/GoldSellFx';
 import { Hotbar } from '../ui/Hotbar';
 import { BuildingShopPanel } from '../ui/BuildingShopPanel';
+import { AttributeShopPanel } from '../ui/AttributeShopPanel';
 import { RebirthPanel } from '../ui/RebirthPanel';
 import { RebirthToast } from '../ui/RebirthToast';
 import { HeldCatStackOverlay } from '../ui/HeldCatStackOverlay';
@@ -24,6 +25,8 @@ import { HeldCats } from './HeldCats';
 import { Inventory, PICKUP_SLOT_INDEX } from './Inventory';
 import { PlayerGold } from './PlayerGold';
 import { RebirthState } from './RebirthState';
+import { CharacterState } from './CharacterState';
+import type { CharacterAttributeId } from '../data/character';
 import { canPlaceBuilding } from './placement';
 import { Player } from './Player';
 import { Simulation } from './Simulation';
@@ -43,11 +46,13 @@ export class Game {
   private heldCats = new HeldCats();
   private playerGold = new PlayerGold();
   private rebirthState = new RebirthState();
+  private characterState = new CharacterState();
   private goldBar: GoldBar;
   private goldSellFx: GoldSellFx;
   private rebirthPanel: RebirthPanel;
   private rebirthToast: RebirthToast;
   private buildingShopPanel: BuildingShopPanel;
+  private attributeShopPanel: AttributeShopPanel;
   private heldCatStackOverlay: HeldCatStackOverlay;
   private startGamePanel: StartGamePanel;
   private introDemo: IntroDemo;
@@ -66,6 +71,7 @@ export class Game {
     hotbarContainer: HTMLElement,
     actionButtonsContainer: HTMLElement,
     shopContainer: HTMLElement,
+    attributeShopContainer: HTMLElement,
     goldBarContainer: HTMLElement,
     uiOverlay: HTMLElement,
     rebirthPanelContainer: HTMLElement,
@@ -97,12 +103,20 @@ export class Game {
       this.playerGold,
       () => this.onInventoryChange(),
     );
+    this.attributeShopPanel = new AttributeShopPanel(
+      attributeShopContainer,
+      this.characterState,
+      this.playerGold,
+      (attr) => this.tryUpgradeAttribute(attr),
+    );
     this.heldCatStackOverlay = new HeldCatStackOverlay(canvas, uiOverlay);
     this.startGamePanel = new StartGamePanel(startGamePanelContainer, () => this.startGame());
+    this.applyCharacterStats();
     this.introDemo = new IntroDemo({
       player: this.player,
       grid: this.grid,
       simulation: this.simulation,
+      getMoveSpeed: () => this.characterState.getMoveSpeed(),
       collectFromBox: () => this.autoBagFromBoxUnderPlayer(),
       sellAllHeldCats: () => this.sellAllHeldCats(),
     });
@@ -174,7 +188,9 @@ export class Game {
     this.hotbar.select(PICKUP_SLOT_INDEX);
     this.lastPlayerCellKey = null;
     this.player.resetToCenter();
+    this.applyCharacterStats();
     this.buildingShopPanel.close();
+    this.attributeShopPanel.close();
     this.goldBar.refresh();
     this.rebirthPanel.refresh();
     this.updateActionButtons();
@@ -214,7 +230,11 @@ export class Game {
     if (this.gamePhase === 'intro') {
       this.introDemo.update(dt);
     } else {
-      this.player.update(dt, this.input.getMovement());
+      this.player.update(
+        dt,
+        this.input.getMovement(),
+        this.characterState.getMoveSpeed(),
+      );
       this.checkShopSell();
       this.autoBagFromBoxUnderPlayer();
     }
@@ -370,11 +390,38 @@ export class Game {
     }
 
     const buildingShop = this.grid.getBuildingShop(gx, gy);
-    if (buildingShop) {
+    if (this.grid.isAttributeShop(gx, gy)) {
+      this.attributeShopPanel.open();
+      this.buildingShopPanel.close();
+    } else if (buildingShop) {
       this.buildingShopPanel.open(buildingShop);
+      this.attributeShopPanel.close();
     } else {
       this.buildingShopPanel.close();
+      this.attributeShopPanel.close();
     }
+  }
+
+  private applyCharacterStats(): void {
+    this.heldCats.setMaxCount(this.characterState.getCarryLimit());
+  }
+
+  private tryUpgradeAttribute(attr: CharacterAttributeId): void {
+    const price = this.characterState.getUpgradePrice(attr);
+    if (price === null || !this.playerGold.spend(price)) {
+      this.refreshShopPanels();
+      return;
+    }
+    this.characterState.upgrade(attr);
+    this.applyCharacterStats();
+    this.goldBar.refresh();
+    this.rebirthPanel.refresh();
+    this.refreshShopPanels();
+  }
+
+  private refreshShopPanels(): void {
+    this.buildingShopPanel.refresh();
+    this.attributeShopPanel.refresh();
   }
 
   private sellAllInventoryBuildings(): void {
@@ -394,7 +441,7 @@ export class Game {
       this.goldBar.refresh();
       this.goldBar.pulseReceive();
       this.rebirthPanel.refresh();
-      this.buildingShopPanel.refresh();
+      this.refreshShopPanels();
     }, getGoldSellCoinCount(count));
   }
 
@@ -414,7 +461,7 @@ export class Game {
       this.goldBar.refresh();
       this.goldBar.pulseReceive();
       this.rebirthPanel.refresh();
-      this.buildingShopPanel.refresh();
+      this.refreshShopPanels();
     }, getGoldSellCoinCount(count));
   }
 
@@ -430,12 +477,16 @@ export class Game {
     this.rebirthToast.show(newMultiplier);
     this.goldBar.refresh();
     this.rebirthPanel.refresh();
-    this.buildingShopPanel.refresh();
+    this.refreshShopPanels();
   }
 
   private autoBagFromBoxUnderPlayer(): void {
     const { gx, gy } = getPlayerCell(this.player);
-    const { entries } = this.simulation.takeAllCatsFromBox(gx, gy);
+    const space = this.heldCats.getRemainingSpace();
+    if (space <= 0) {
+      return;
+    }
+    const { entries } = this.simulation.takeCatsFromBox(gx, gy, space);
     if (entries.length <= 0) {
       return;
     }
@@ -489,7 +540,7 @@ export class Game {
     this.hotbar.refresh();
     this.goldBar.refresh();
     this.rebirthPanel.refresh();
-    this.buildingShopPanel.refresh();
+    this.refreshShopPanels();
 
     if (
       this.mode === 'place' &&

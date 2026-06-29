@@ -1,5 +1,6 @@
 import {
   REBIRTH_BASE_COST,
+  REBIRTH_COST_RATIO,
   REBIRTH_GOLD_MULTIPLIER_STEP,
   REBIRTH_INITIAL_GOLD_MULTIPLIER,
 } from '../config';
@@ -22,7 +23,7 @@ export class RebirthState {
   }
 
   getRebirthCost(): number {
-    return REBIRTH_BASE_COST * (this.count + 1);
+    return Math.round(REBIRTH_BASE_COST * Math.pow(REBIRTH_COST_RATIO, this.count));
   }
 
   performRebirth(): void {

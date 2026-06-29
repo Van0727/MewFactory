@@ -50,8 +50,10 @@ export const COLOR_TILE_PLACE_INVALID = 'rgba(230, 130, 50, 0.5)';
 export const SHOP_UI_SCALE = 1.5;
 
 export const PACK_BOX_PULSE_DURATION = 0.25;
-/** 猫窝/包装箱相对地面抬升高度（CSS px），侧面用贴图主色填充 */
+/** 猫窝相对地面抬升高度（CSS px），侧面用贴图主色填充 */
 export const BUILDING_GROUND_LIFT_PX = 20;
+/** 包装箱抬升高度（为猫窝的一半） */
+export const PACKING_BOX_GROUND_LIFT_PX = BUILDING_GROUND_LIFT_PX / 2;
 export const CAT_ARRIVE_EPSILON = 0.04;
 /** 小猫经过变异门时的缩放脉冲时长（秒） */
 export const CAT_MUTATION_PULSE_DURATION = 0.35;
@@ -80,12 +82,25 @@ export function getGoldSellCoinCount(catCount: number): number {
   );
 }
 
+/** 建筑购买价：Lv1 基准与每级倍率（指数曲线） */
+export const BUILDING_PRICE_BASE = 100;
+export const BUILDING_PRICE_RATIO = 3;
+/** 小猫基础售价：Lv1 基准与每级倍率（指数曲线） */
+export const CAT_SELL_PRICE_BASE = 10;
+export const CAT_SELL_PRICE_RATIO = 3;
+
+export function tierExponentialPrice(base: number, ratio: number, level: number): number {
+  const tier = Math.max(1, Math.floor(level));
+  return Math.round(base * Math.pow(ratio, tier - 1));
+}
+
 /** 重生：初始金币产出倍率 */
 export const REBIRTH_INITIAL_GOLD_MULTIPLIER = 1;
 /** 每次重生增加的金币产出倍率 */
 export const REBIRTH_GOLD_MULTIPLIER_STEP = 0.5;
-/** 重生基础价格（实际价格 × 已重生次数+1） */
+/** 重生第 1 次基础价格；实际为 base × ratio^已重生次数 */
 export const REBIRTH_BASE_COST = 100;
+export const REBIRTH_COST_RATIO = 3;
 /** 重生成功提示显示时长（秒） */
 export const REBIRTH_TOAST_DURATION = 1;
 

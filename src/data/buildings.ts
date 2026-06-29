@@ -1,3 +1,10 @@
+import {
+  BUILDING_PRICE_BASE,
+  BUILDING_PRICE_RATIO,
+  CAT_SELL_PRICE_BASE,
+  CAT_SELL_PRICE_RATIO,
+  tierExponentialPrice,
+} from '../config';
 import type { BuildingType } from '../game/Building';
 
 /** 稀有度枚举 */
@@ -68,31 +75,31 @@ type BuildingConfigMap = {
 /** 所有建筑配置数据（从 CSV 解析） */
 export const BUILDING_CONFIGS: BuildingConfigMap = {
   CatNest: [
-    { level: 1, name: '土豆猫', rarity: 'N', color: '#ffffff', spriteId: 'cat_1', price: 100, spawnInterval: 5, catBasePrice: 10 },
-    { level: 2, name: '腊肠猫', rarity: 'R', color: '#4caf50', spriteId: 'cat_2', price: 200, spawnInterval: 5, catBasePrice: 50 },
-    { level: 3, name: '肌肉猫', rarity: 'SR', color: '#2196f3', spriteId: 'cat_3', price: 300, spawnInterval: 5, catBasePrice: 100 },
-    { level: 4, name: '长腿猫', rarity: 'SSR', color: '#9c27b0', spriteId: 'cat_4', price: 400, spawnInterval: 5, catBasePrice: 200 },
-    { level: 5, name: '无头猫', rarity: 'UR', color: '#ff9800', spriteId: 'cat_5', price: 500, spawnInterval: 5, catBasePrice: 500 },
+    { level: 1, name: '喵喵窝', rarity: 'N', color: '#ffffff', spriteId: 'cat_1', price: 100, spawnInterval: 5, catBasePrice: 10 },
+    { level: 2, name: '旺旺窝', rarity: 'R', color: '#4caf50', spriteId: 'cat_2', price: 300, spawnInterval: 5, catBasePrice: 30 },
+    { level: 3, name: '哞哞窝', rarity: 'SR', color: '#2196f3', spriteId: 'cat_3', price: 900, spawnInterval: 5, catBasePrice: 90 },
+    { level: 4, name: '咕咕窝', rarity: 'SSR', color: '#9c27b0', spriteId: 'cat_4', price: 2700, spawnInterval: 5, catBasePrice: 270 },
+    { level: 5, name: '呱呱窝', rarity: 'UR', color: '#ff9800', spriteId: 'cat_5', price: 8100, spawnInterval: 5, catBasePrice: 810 },
   ],
   Conveyor: [
     { level: 1, name: '传送带', rarity: 'N', color: '#ffffff', spriteId: 'conveyor_1', price: 100, speed: 1.0 },
-    { level: 2, name: '滑草传送带', rarity: 'R', color: '#4caf50', spriteId: 'conveyor_2', price: 200, speed: 2.0 },
-    { level: 3, name: '溜冰传送带', rarity: 'SR', color: '#2196f3', spriteId: 'conveyor_3', price: 300, speed: 3.0 },
-    { level: 4, name: '彩虹传送带', rarity: 'SSR', color: '#9c27b0', spriteId: 'conveyor_4', price: 400, speed: 4.0 },
-    { level: 5, name: '香蕉皮传送带', rarity: 'UR', color: '#ff9800', spriteId: 'conveyor_5', price: 500, speed: 5.0 },
+    { level: 2, name: '滑草传送带', rarity: 'R', color: '#4caf50', spriteId: 'conveyor_2', price: 300, speed: 2.0 },
+    { level: 3, name: '溜冰传送带', rarity: 'SR', color: '#2196f3', spriteId: 'conveyor_3', price: 900, speed: 3.0 },
+    { level: 4, name: '彩虹传送带', rarity: 'SSR', color: '#9c27b0', spriteId: 'conveyor_4', price: 2700, speed: 4.0 },
+    { level: 5, name: '香蕉皮传送带', rarity: 'UR', color: '#ff9800', spriteId: 'conveyor_5', price: 8100, speed: 5.0 },
   ],
   PackingBox: [
     { level: 1, name: '纸箱', rarity: 'N', color: '#ffffff', spriteId: 'box_1', price: 100, capacity: 10 },
-    { level: 2, name: '顺丰包装箱', rarity: 'R', color: '#4caf50', spriteId: 'box_2', price: 200, capacity: 30 },
-    { level: 3, name: '浴缸', rarity: 'SR', color: '#2196f3', spriteId: 'box_3', price: 300, capacity: 100 },
-    { level: 4, name: '圣诞袜', rarity: 'SSR', color: '#9c27b0', spriteId: 'box_4', price: 400, capacity: 200 },
-    { level: 5, name: '异次元口袋', rarity: 'UR', color: '#ff9800', spriteId: 'box_5', price: 500, capacity: 500 },
+    { level: 2, name: '顺丰包装箱', rarity: 'R', color: '#4caf50', spriteId: 'box_2', price: 300, capacity: 30 },
+    { level: 3, name: '浴缸', rarity: 'SR', color: '#2196f3', spriteId: 'box_3', price: 900, capacity: 100 },
+    { level: 4, name: '圣诞袜', rarity: 'SSR', color: '#9c27b0', spriteId: 'box_4', price: 2700, capacity: 200 },
+    { level: 5, name: '异次元口袋', rarity: 'UR', color: '#ff9800', spriteId: 'box_5', price: 8100, capacity: 500 },
   ],
   MutationGate: [
     { level: 1, name: '充气门', rarity: 'N', color: '#ffffff', spriteId: 'door_2', price: 100, priceMultiplier: 1.5, description: '变大变大！', effect: '小猫变大10%，可叠加' },
-    { level: 2, name: '精舞门', rarity: 'R', color: '#4caf50', spriteId: 'door_3', price: 200, priceMultiplier: 2.0, description: 'Dancing！', effect: '小猫旋转速度增加50%，可叠加' },
-    { level: 3, name: '颠倒门', rarity: 'SR', color: '#2196f3', spriteId: 'door_4', price: 300, priceMultiplier: 2.5, description: '脚就是头！', effect: '小猫上下翻转，可反复触发' },
-    { level: 4, name: '烧烤门', rarity: 'SSR', color: '#9c27b0', spriteId: 'door_1', price: 400, priceMultiplier: 3.0, description: '着火啦！', effect: '小猫身上着火，可叠加火焰高度' },
+    { level: 2, name: '精舞门', rarity: 'R', color: '#4caf50', spriteId: 'door_3', price: 300, priceMultiplier: 2.0, description: 'Dancing！', effect: '小猫旋转速度增加50%，可叠加' },
+    { level: 3, name: '颠倒门', rarity: 'SR', color: '#2196f3', spriteId: 'door_4', price: 900, priceMultiplier: 2.5, description: '脚就是头！', effect: '小猫上下翻转，可反复触发' },
+    { level: 4, name: '烧烤门', rarity: 'SSR', color: '#9c27b0', spriteId: 'door_1', price: 2700, priceMultiplier: 3.0, description: '着火啦！', effect: '小猫身上着火，可叠加火焰高度' },
   ],
 };
 
@@ -122,7 +129,7 @@ export function getBuildingConfigs<T extends BuildingType>(
 
 /** 获取猫窝的小猫基础价格 */
 export function getCatHouseBasePrice(level: number): number {
-  return getBuildingConfig('CatNest', level)?.catBasePrice ?? 10;
+  return tierExponentialPrice(CAT_SELL_PRICE_BASE, CAT_SELL_PRICE_RATIO, level);
 }
 
 /** 获取猫窝的产出间隔 */
@@ -151,6 +158,6 @@ export function getBuildingName(type: BuildingType, level: number): string {
 }
 
 /** 获取建筑购买价格 */
-export function getBuildingPrice(type: BuildingType, level: number): number {
-  return getBuildingConfig(type, level)?.price ?? 100;
+export function getBuildingPrice(_type: BuildingType, level: number): number {
+  return tierExponentialPrice(BUILDING_PRICE_BASE, BUILDING_PRICE_RATIO, level);
 }

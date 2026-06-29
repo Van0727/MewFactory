@@ -31,3 +31,16 @@ export function getBuildingShopTitle(type: BuildingShopKind): string {
 export function getBuildingShopItemLabel(type: BuildingShopKind, level: number): string {
   return getBuildingName(type, level);
 }
+
+export function getBuildingShopSpriteId(type: BuildingShopKind): string {
+  switch (type) {
+    case BuildingType.CatNest:
+      return 'shop_mew';
+    case BuildingType.Conveyor:
+      return 'shop_conveyor';
+    case BuildingType.MutationGate:
+      return 'shop_door';
+    case BuildingType.PackingBox:
+      return 'shop_box';
+  }
+}

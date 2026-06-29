@@ -49,6 +49,8 @@ body {
 
 #game-container.is-intro #hotbar,
 #game-container.is-intro #building-shop-panel,
+#game-container.is-intro #attribute-shop-panel,
+#game-container.is-intro #rebirth-panel,
 #game-container.is-intro #gold-bar,
 #game-container.is-intro #action-buttons {
   pointer-events: none;
@@ -125,6 +127,7 @@ body {
 }
 
 #building-shop-panel,
+#attribute-shop-panel,
 #gold-bar,
 #action-buttons,
 #rebirth-panel,
@@ -298,7 +301,7 @@ body {
   flex: 0 0 13%;
   min-height: 0;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   box-shadow: 0 -0.4cqmin 2cqmin rgba(107, 79, 168, 0.2);
 }
 
@@ -306,14 +309,17 @@ body {
   display: flex;
   gap: 0.6cqmin;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 #rebirth-panel {
   position: absolute;
   left: 1.8cqmin;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 1.8cqmin;
+  z-index: 20;
+  transform: scale(1.25);
+  transform-origin: bottom left;
+  pointer-events: auto;
 }
 
 .rebirth-panel {
@@ -489,6 +495,117 @@ body {
   display: none;
 }
 
+#attribute-shop-panel {
+  position: absolute;
+  top: 2cqmin;
+  right: 2cqmin;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8cqmin;
+  padding: 1.4cqmin 1.8cqmin;
+  background: linear-gradient(180deg, rgba(155, 123, 212, 0.95) 0%, rgba(90, 61, 150, 0.96) 100%);
+  border: 0.2cqmin solid rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius-card);
+  width: 52cqmin;
+  min-width: 52cqmin;
+  max-width: 52cqmin;
+  box-sizing: border-box;
+  box-shadow: var(--shadow-soft);
+  transform: scale(var(--shop-ui-scale));
+  transform-origin: top right;
+}
+
+#attribute-shop-panel .shop-title {
+  font-size: 2.4cqmin;
+  margin-bottom: 0.2cqmin;
+  white-space: nowrap;
+  color: #fff;
+  font-weight: bold;
+  text-align: center;
+}
+
+#attribute-shop-panel.is-hidden {
+  display: none;
+}
+
+.attribute-shop-items {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    5.2cqmin
+    5.8cqmin
+    7cqmin
+    7.5cqmin
+    8.5cqmin;
+  column-gap: 0.65cqmin;
+  row-gap: 0.55cqmin;
+  align-items: center;
+  width: 100%;
+}
+
+.attribute-shop-row {
+  display: contents;
+}
+
+.attribute-shop-name {
+  font-size: 2cqmin;
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.attribute-shop-level {
+  font-size: 1.9cqmin;
+  color: #ffe566;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.attribute-shop-current {
+  font-size: 1.9cqmin;
+  color: #eee;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.attribute-shop-next {
+  font-size: 1.85cqmin;
+  color: #c8e8ff;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.attribute-shop-price {
+  font-size: 2cqmin;
+  color: #f0c040;
+  font-weight: bold;
+  white-space: nowrap;
+  text-align: right;
+  justify-self: stretch;
+}
+
+.attribute-shop-upgrade {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 3.2cqmin;
+  padding: 0.5cqmin 0.4cqmin;
+  font-size: 2cqmin;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.attribute-shop-upgrade:disabled {
+  background: #666;
+  border-color: #444;
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
 .building-shop-items {
   display: grid;
   grid-template-columns: 4.2cqmin minmax(0, 1fr) 8cqmin 8.5cqmin;
@@ -516,7 +633,7 @@ body {
 }
 
 .building-shop-icon.building-shop-icon-cat-nest {
-  transform: rotate(90deg);
+  transform: rotate(180deg);
 }
 
 .building-shop-label {

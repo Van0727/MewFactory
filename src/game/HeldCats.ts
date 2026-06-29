@@ -21,12 +21,28 @@ export function getHeldCatDisplayState(entry: HeldCatEntry): HeldCatDisplayState
   };
 }
 
-/** 玩家手里的小猫，无上限，可跨箱叠加。按只记录品种与价值。 */
+/** 玩家手里的小猫，受力量属性限制单次拿取上限。 */
 export class HeldCats {
   private stack: HeldCatEntry[] = [];
+  private maxCount = Number.POSITIVE_INFINITY;
+
+  setMaxCount(maxCount: number): void {
+    this.maxCount = Math.max(1, maxCount);
+  }
+
+  getMaxCount(): number {
+    return this.maxCount;
+  }
 
   getCount(): number {
     return this.stack.length;
+  }
+
+  getRemainingSpace(): number {
+    if (!Number.isFinite(this.maxCount)) {
+      return Number.POSITIVE_INFINITY;
+    }
+    return Math.max(0, this.maxCount - this.stack.length);
   }
 
   getTotalValue(): number {
@@ -52,9 +68,17 @@ export class HeldCats {
     this.stack = [];
   }
 
-  addEntries(entries: HeldCatEntry[]): void {
-    if (entries.length > 0) {
-      this.stack.push(...entries);
+  addEntries(entries: HeldCatEntry[]): number {
+    const space = this.getRemainingSpace();
+    if (space <= 0 || entries.length === 0) {
+      return 0;
     }
+    const takeCount =
+      Number.isFinite(space) ? Math.min(entries.length, space) : entries.length;
+    if (takeCount <= 0) {
+      return 0;
+    }
+    this.stack.push(...entries.slice(0, takeCount));
+    return takeCount;
   }
 }

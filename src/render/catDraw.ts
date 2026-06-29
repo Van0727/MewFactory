@@ -6,6 +6,7 @@ import {
   getCatPulseScale,
 } from '../game/Cat';
 import {
+  PACKING_BOX_GROUND_LIFT_PX,
   CAT_ROLE_SPRITE_TILE_SCALE,
   PLAYER_SPRITE_ANCHOR_X,
   PLAYER_SPRITE_ANCHOR_Y,
@@ -105,64 +106,22 @@ export function drawBoxCount(
   origin: IsoOrigin,
 ): void {
   const { cx, cy } = getGridCellAnchor(gx, gy, origin);
-  const barW = scaleCanvasUi(56, origin.viewScale);
-  const barH = scaleCanvasUi(10, origin.viewScale);
-  const barInset = scaleCanvasUi(1, origin.viewScale);
-  const barX = cx - barW / 2;
-  const barY = cy - barH * 2.2;
-  const fillRatio = capacity > 0 ? Math.min(1, count / capacity) : 0;
+  const liftPx = scaleCanvasUi(PACKING_BOX_GROUND_LIFT_PX, origin.viewScale);
+  const fontSize = scaleCanvasUi(11, origin.viewScale);
+  const labelY = cy - liftPx - fontSize * 0.85;
+  const atCapacity = capacity > 0 && count >= capacity;
+  const text = atCapacity ? 'MAX' : `${count}/${capacity}`;
 
   ctx.save();
-  ctx.fillStyle = 'rgba(60, 40, 25, 0.88)';
-  roundRect(ctx, barX, barY, barW, barH, barH / 2);
-  ctx.fill();
-
-  if (fillRatio > 0) {
-    ctx.fillStyle = '#ffd54f';
-    roundRect(
-      ctx,
-      barX + barInset,
-      barY + barInset,
-      (barW - barInset * 2) * fillRatio,
-      barH - barInset * 2,
-      (barH - barInset * 2) / 2,
-    );
-    ctx.fill();
-  }
-
-  const fontSize = scaleCanvasUi(11, origin.viewScale);
   ctx.font = `bold ${fontSize}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#fff';
-  ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillStyle = atCapacity ? '#ff4444' : '#fff';
+  ctx.strokeStyle = atCapacity ? 'rgba(80, 0, 0, 0.75)' : 'rgba(0,0,0,0.55)';
   ctx.lineWidth = scaleCanvasUi(2, origin.viewScale);
-  const text = `${count}/${capacity}`;
-  ctx.strokeText(text, cx, barY + barH / 2);
-  ctx.fillText(text, cx, barY + barH / 2);
+  ctx.strokeText(text, cx, labelY);
+  ctx.fillText(text, cx, labelY);
   ctx.restore();
-}
-
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-): void {
-  const radius = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + w - radius, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-  ctx.lineTo(x + w, y + h - radius);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
-  ctx.lineTo(x + radius, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
 }
 
 export function getCatSortY(cat: Cat, origin: IsoOrigin): number {

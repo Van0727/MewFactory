@@ -13,7 +13,8 @@ import { BuildingType, type Building } from '../game/Building';
 import type { Cat } from '../game/Cat';
 import type { Grid } from '../game/Grid';
 import type { Player } from '../game/Player';
-import { RECYCLE_DEPOT_GRID_CELL, SELL_SHOP_GRID_CELL } from '../game/gridCoords';
+import { RECYCLE_DEPOT_GRID_CELL, SELL_SHOP_GRID_CELL, ATTRIBUTE_SHOP_GRID_CELL } from '../game/gridCoords';
+import { drawAttributeShop } from './attributeShopDraw';
 import { getPlayerFeetGridPos } from '../game/gridUtils';
 import { getSprite } from './assets';
 import { drawBuilding, drawHeldBuildingInCell } from './buildingDraw';
@@ -191,6 +192,15 @@ export class Renderer {
       );
     }
 
+    if (state.grid.isAttributeShop(ATTRIBUTE_SHOP_GRID_CELL.gx, ATTRIBUTE_SHOP_GRID_CELL.gy)) {
+      drawAttributeShop(
+        this.ctx,
+        ATTRIBUTE_SHOP_GRID_CELL.gx,
+        ATTRIBUTE_SHOP_GRID_CELL.gy,
+        this.origin,
+      );
+    }
+
     const sortedCats = [...state.cats].sort(
       (a, b) => getCatSortY(a, this.origin) - getCatSortY(b, this.origin),
     );
@@ -213,7 +223,7 @@ export class Renderer {
 
   private drawTile(gx: number, gy: number, highlight: TileHighlight): void {
     const isLight = (gx + gy) % 2 === 0;
-    const frontColor = isLight ? COLOR_LIGHT_FRONT : COLOR_DARK_FRONT;
+    const frontColor = isLight ? COLOR_DARK_FRONT : COLOR_LIGHT_FRONT;
     const topCorners = getTileTopCorners(gx, gy, this.origin);
     const tileSprite = isLight ? getSprite('tileLight') : getSprite('tileDark');
 

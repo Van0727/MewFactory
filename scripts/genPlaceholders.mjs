@@ -647,8 +647,8 @@ function conveyorColor(level) {
 
 const assets = [
   ['background/scene.png', drawSceneBackground(640, 480)],
-  ['tiles/tile_light.png', drawSoftTile(CELL_SIZE, TILE_LIGHT, false)],
-  ['tiles/tile_dark.png', drawSoftTile(CELL_SIZE, TILE_DARK, true)],
+  ['tiles/tile_light.png', drawSoftTile(CELL_SIZE, TILE_DARK, true)],
+  ['tiles/tile_dark.png', drawSoftTile(CELL_SIZE, TILE_LIGHT, false)],
   ['buildings/sell_shop.png', drawSellShop(CELL_SIZE, CELL_SIZE)],
   ['cats/cat_normal.png', drawRoundCat(CELL_SIZE, CELL_SIZE, [255, 255, 255])],
   ['cats/cat_mutated.png', drawRoundCat(CELL_SIZE, CELL_SIZE, [255, 140, 130], [230, 90, 90])],

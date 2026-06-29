@@ -102,6 +102,54 @@ export class Simulation {
     return Math.max(0, interval - elapsed);
   }
 
+  /** 取出包装箱内小猫，最多 limit 只（从栈顶取） */
+  takeCatsFromBox(
+    gx: number,
+    gy: number,
+    limit: number,
+  ): {
+    entries: HeldCatEntry[];
+    count: number;
+    value: number;
+  } {
+    const building = this.grid.get(gx, gy);
+    if (building?.type !== BuildingType.PackingBox || limit <= 0) {
+      return { entries: [], count: 0, value: 0 };
+    }
+
+    const entries = this.boxCatStacks[gy][gx];
+    if (entries.length <= 0) {
+      return { entries: [], count: 0, value: 0 };
+    }
+
+    const takeCount = Math.min(limit, entries.length);
+    const baseline = this.boxDisplayBaselines[gy][gx] ?? {
+      nestLevel: entries[0].nestLevel,
+      inflateStacks: 0,
+      barbecueStacks: 0,
+      flipCount: 0,
+    };
+    const takenRaw = entries.slice(entries.length - takeCount);
+    const takenValue = takenRaw.reduce((sum, entry) => sum + entry.value, 0);
+    const entriesWithDisplay = takenRaw.map((entry) => ({
+      ...entry,
+      display: { ...baseline },
+    }));
+
+    this.boxCatStacks[gy][gx] = entries.slice(0, entries.length - takeCount);
+    this.boxCounts[gy][gx] = this.boxCatStacks[gy][gx].length;
+    this.boxValues[gy][gx] -= takenValue;
+    if (this.boxCounts[gy][gx] <= 0) {
+      this.boxDisplayBaselines[gy][gx] = null;
+    }
+
+    return {
+      entries: entriesWithDisplay,
+      count: takeCount,
+      value: takenValue,
+    };
+  }
+
   /** 取出包装箱内全部小猫 */
   takeAllCatsFromBox(gx: number, gy: number): {
     entries: HeldCatEntry[];
@@ -112,27 +160,8 @@ export class Simulation {
     if (building?.type !== BuildingType.PackingBox) {
       return { entries: [], count: 0, value: 0 };
     }
-    const entries = this.boxCatStacks[gy][gx];
-    const count = entries.length;
-    const value = this.boxValues[gy][gx];
-    if (count <= 0) {
-      return { entries: [], count: 0, value: 0 };
-    }
-    const baseline = this.boxDisplayBaselines[gy][gx] ?? {
-      nestLevel: entries[0].nestLevel,
-      inflateStacks: 0,
-      barbecueStacks: 0,
-      flipCount: 0,
-    };
-    const entriesWithDisplay = entries.map((entry) => ({
-      ...entry,
-      display: { ...baseline },
-    }));
-    this.boxCounts[gy][gx] = 0;
-    this.boxValues[gy][gx] = 0;
-    this.boxCatStacks[gy][gx] = [];
-    this.boxDisplayBaselines[gy][gx] = null;
-    return { entries: entriesWithDisplay, count, value };
+    const count = this.boxCounts[gy][gx];
+    return this.takeCatsFromBox(gx, gy, count);
   }
 
   onBuildingPlaced(

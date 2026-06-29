@@ -12,6 +12,7 @@ export interface IntroDemoDeps {
   player: Player;
   grid: Grid;
   simulation: Simulation;
+  getMoveSpeed: () => number;
   collectFromBox: () => void;
   sellAllHeldCats: () => void;
 }
@@ -95,10 +96,12 @@ export class IntroDemo {
       return;
     }
 
+    const speed = this.deps.getMoveSpeed();
     const arrived = this.deps.player.moveToward(
       this.currentTarget.x,
       this.currentTarget.y,
       dt,
+      speed,
     );
     if (arrived) {
       this.deps.collectFromBox();
@@ -108,7 +111,8 @@ export class IntroDemo {
 
   private updateSelling(dt: number): void {
     const { x: targetX, y: targetY } = getSellShopCenter();
-    const arrived = this.deps.player.moveToward(targetX, targetY, dt);
+    const speed = this.deps.getMoveSpeed();
+    const arrived = this.deps.player.moveToward(targetX, targetY, dt, speed);
     if (arrived) {
       this.deps.sellAllHeldCats();
       this.state = 'waiting';

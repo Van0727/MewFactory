@@ -27,12 +27,23 @@ export const SELL_SHOP_GRID_CELL = userCellToGrid(
   SELL_SHOP_USER_CELL.y,
 );
 
-/** 建筑回收处：左下角 X=1, Y=1 */
-export const RECYCLE_DEPOT_USER_CELL = { x: 1, y: 1 };
+/** 建筑回收处：右下角 X=10, Y=10 */
+export const RECYCLE_DEPOT_USER_CELL = { x: 10, y: 10 };
 export const RECYCLE_DEPOT_GRID_CELL = userCellToGrid(
   RECYCLE_DEPOT_USER_CELL.x,
   RECYCLE_DEPOT_USER_CELL.y,
 );
+
+/** 属性商店：X=8, Y=1 */
+export const ATTRIBUTE_SHOP_USER_CELL = { x: 8, y: 1 };
+export const ATTRIBUTE_SHOP_GRID_CELL = userCellToGrid(
+  ATTRIBUTE_SHOP_USER_CELL.x,
+  ATTRIBUTE_SHOP_USER_CELL.y,
+);
+
+export function isAttributeShopCell(gx: number, gy: number): boolean {
+  return gx === ATTRIBUTE_SHOP_GRID_CELL.gx && gy === ATTRIBUTE_SHOP_GRID_CELL.gy;
+}
 
 export function isRecycleDepotCell(gx: number, gy: number): boolean {
   return gx === RECYCLE_DEPOT_GRID_CELL.gx && gy === RECYCLE_DEPOT_GRID_CELL.gy;

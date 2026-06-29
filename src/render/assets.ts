@@ -1,6 +1,10 @@
 import type { Building } from '../game/Building';
 import { BUILDING_CONFIGS } from '../data/buildings';
 import {
+  getBuildingShopSpriteId,
+  type BuildingShopKind,
+} from '../game/buildingShopCatalog';
+import {
   SPRITE_SOURCE_SIZE,
   UI_ICON_SOURCE_SIZE,
 } from '../config';
@@ -33,10 +37,23 @@ const BASE_ASSET_PATHS: Record<BaseAssetKey, string> = {
 export const ROLE_SPRITE_IDS = ['role_1', 'role_2', 'role_3', 'role_4', 'role_5'] as const;
 /** 出售区域贴图（512×256，占 2 格宽） */
 export const SELL_SHOP_SPRITE_ID = 'sell_shop';
+/** 建筑回收处地面贴图 */
+export const RECYCLE_DEPOT_SPRITE_ID = 'sell_building';
+/** 属性商店地面贴图 */
+export const ATTRIBUTE_SHOP_SPRITE_ID = 'shop_character';
 /** 开始游戏按钮 */
 export const START_BUTTON_SPRITE_ID = 'start';
 
-const BOARD_EXTRA_SPRITE_IDS = [SELL_SHOP_SPRITE_ID, START_BUTTON_SPRITE_ID] as const;
+const BOARD_EXTRA_SPRITE_IDS = [
+  SELL_SHOP_SPRITE_ID,
+  RECYCLE_DEPOT_SPRITE_ID,
+  ATTRIBUTE_SHOP_SPRITE_ID,
+  START_BUTTON_SPRITE_ID,
+  'shop_mew',
+  'shop_conveyor',
+  'shop_door',
+  'shop_box',
+] as const;
 
 function collectBuildingSpriteIds(): string[] {
   const ids = new Set<string>();
@@ -138,6 +155,18 @@ export function getRoleSpriteUrl(nestLevel: number): string {
 
 export function getSellShopSprite(): HTMLImageElement {
   return getSpriteById(SELL_SHOP_SPRITE_ID);
+}
+
+export function getBuildingShopSprite(kind: BuildingShopKind): HTMLImageElement {
+  return getSpriteById(getBuildingShopSpriteId(kind));
+}
+
+export function getRecycleDepotSprite(): HTMLImageElement {
+  return getSpriteById(RECYCLE_DEPOT_SPRITE_ID);
+}
+
+export function getAttributeShopSprite(): HTMLImageElement {
+  return getSpriteById(ATTRIBUTE_SHOP_SPRITE_ID);
 }
 
 export function getSellShopSpriteUrl(): string {
