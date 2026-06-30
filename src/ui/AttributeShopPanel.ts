@@ -4,6 +4,8 @@ import {
 
   CHARACTER_ATTRIBUTE_LABELS,
 
+  formatCharacterValue,
+
   type CharacterAttributeId,
 
 } from '../data/character';
@@ -146,7 +148,10 @@ export class AttributeShopPanel {
 
       currentEl.className = 'attribute-shop-current';
 
-      currentEl.textContent = String(this.characterState.getCurrentValue(attr));
+      currentEl.textContent = formatCharacterValue(
+        attr,
+        this.characterState.getCurrentValue(attr),
+      );
 
 
 
@@ -162,7 +167,7 @@ export class AttributeShopPanel {
 
       } else {
 
-        nextEl.textContent = `→ ${nextValue}`;
+        nextEl.textContent = `→ ${formatCharacterValue(attr, nextValue)}`;
 
       }
 

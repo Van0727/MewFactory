@@ -70,6 +70,26 @@ export function getSellShopCenter(): { x: number; y: number } {
   };
 }
 
+/** 玩家默认出生格：出售商店左侧 */
+export function getPlayerSpawnCell(): { gx: number; gy: number } {
+  return {
+    gx: SELL_SHOP_GRID_CELL.gx - 1,
+    gy: SELL_SHOP_GRID_CELL.gy,
+  };
+}
+
+export function getPlayerSpawnPosition(): { x: number; y: number } {
+  const { gx, gy } = getPlayerSpawnCell();
+  return { x: gx + 0.5, y: gy + 0.5 };
+}
+
+/** 新手引导：包装箱应放置的用户格 */
+export const TUTORIAL_BOX_USER_CELL = { x: 8, y: 5 };
+export const TUTORIAL_BOX_GRID_CELL = userCellToGrid(
+  TUTORIAL_BOX_USER_CELL.x,
+  TUTORIAL_BOX_USER_CELL.y,
+);
+
 /** 底行出售商店右侧两个可建空格（不含属性商店格） */
 const SELL_RIGHT_BLANK_CELLS = [
   { gx: SELL_SHOP_GRID_CELL.gx + SELL_SHOP_WIDTH_CELLS, gy: SELL_SHOP_GRID_CELL.gy },

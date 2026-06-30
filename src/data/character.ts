@@ -9,14 +9,14 @@ export interface CharacterLevelConfig {
 
 const ATTRIBUTE_CSV_NAMES: Record<CharacterAttributeId, string> = {
   moveSpeed: '移动速度',
-  strength: '力量',
+  strength: '举起数量',
 };
 
 export const CHARACTER_ATTRIBUTE_IDS: CharacterAttributeId[] = ['moveSpeed', 'strength'];
 
 export const CHARACTER_ATTRIBUTE_LABELS: Record<CharacterAttributeId, string> = {
   moveSpeed: '移动速度',
-  strength: '力量',
+  strength: '举起数量',
 };
 
 /** 属性等级配置（与 charatcer.csv 同步） */
@@ -64,6 +64,13 @@ export function getCharacterMaxLevel(attr: CharacterAttributeId): number {
 
 export function getCharacterValue(attr: CharacterAttributeId, level: number): number {
   return getCharacterLevelConfig(attr, level)?.value ?? CHARACTER_CONFIGS[attr][0].value;
+}
+
+export function formatCharacterValue(attr: CharacterAttributeId, value: number): string {
+  if (attr === 'strength') {
+    return `${value}只`;
+  }
+  return String(value);
 }
 
 /** 升到下一级所需金币（下一级行的 price） */

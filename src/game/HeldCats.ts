@@ -21,7 +21,7 @@ export function getHeldCatDisplayState(entry: HeldCatEntry): HeldCatDisplayState
   };
 }
 
-/** 玩家手里的小猫，受力量属性限制单次拿取上限。 */
+/** 玩家手里的小猫，受举起数量属性限制单次拿取上限。 */
 export class HeldCats {
   private stack: HeldCatEntry[] = [];
   private maxCount = Number.POSITIVE_INFINITY;

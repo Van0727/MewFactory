@@ -589,6 +589,30 @@ body {
   transform: translate(-50%, -50%) scale(1);
 }
 
+.tutorial-panel {
+  position: absolute;
+  left: 2.5cqmin;
+  top: 30%;
+  transform: translateY(-50%);
+  max-width: 36%;
+  padding: 1.4cqmin 2.4cqmin;
+  font-size: 3.4cqmin;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #fff;
+  text-align: left;
+  background: rgba(90, 61, 150, 0.92);
+  border: 0.28cqmin solid var(--color-accent-yellow);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  pointer-events: none;
+  z-index: 25;
+}
+
+.tutorial-panel.is-hidden {
+  display: none;
+}
+
 .hotbar-slot {
   position: relative;
   width: 8cqmin;

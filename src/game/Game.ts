@@ -13,6 +13,7 @@ import { ClearAllConfirm } from '../ui/ClearAllConfirm';
 import { GmGoldButton } from '../ui/GmGoldButton';
 import { HeldCatStackOverlay } from '../ui/HeldCatStackOverlay';
 import { StartGamePanel } from '../ui/StartGamePanel';
+import { TutorialPanel } from '../ui/TutorialPanel';
 import {
   BuildingType,
   rotateDirection,
@@ -20,7 +21,7 @@ import {
 } from './Building';
 import { IntroDemo } from './IntroDemo';
 import { autoBuildFromInventory, previewAutoBuild } from './autoBuild';
-import { seedBasicPipeline, seedDemoProductionLines } from './starterLayout';
+import { seedRandomProductionLines, seedStarterPipeline } from './starterLayout';
 import { seedFixedShops } from './fixedShops';
 import { Grid } from './Grid';
 import { getPlayerCell } from './gridUtils';
@@ -33,6 +34,7 @@ import type { CharacterAttributeId } from '../data/character';
 import { canPlaceBuilding } from './placement';
 import { Player } from './Player';
 import { Simulation } from './Simulation';
+import { TutorialGuide, TUTORIAL_START_GOLD } from './TutorialGuide';
 
 type InteractionMode = 'place' | 'pickup';
 type GamePhase = 'intro' | 'playing';
@@ -58,6 +60,9 @@ export class Game {
   private attributeShopPanel: AttributeShopPanel;
   private heldCatStackOverlay: HeldCatStackOverlay;
   private startGamePanel: StartGamePanel;
+  private tutorial = new TutorialGuide();
+  private tutorialPanel: TutorialPanel;
+  private lastTutorialHint = '';
   private introDemo: IntroDemo;
   private gamePhase: GamePhase = 'intro';
   private mode: InteractionMode = 'pickup';
@@ -109,6 +114,10 @@ export class Game {
       this.inventory,
       this.playerGold,
       () => this.onInventoryChange(),
+      (kind, level) => {
+        this.tutorial.onBuildingPurchased(kind, level);
+        this.syncTutorialPanel();
+      },
     );
     this.attributeShopPanel = new AttributeShopPanel(
       attributeShopContainer,
@@ -118,6 +127,7 @@ export class Game {
     );
     this.heldCatStackOverlay = new HeldCatStackOverlay(canvas, uiOverlay);
     this.startGamePanel = new StartGamePanel(startGamePanelContainer, () => this.startGame());
+    this.tutorialPanel = new TutorialPanel(uiOverlay);
     new ClearAllConfirm(
       factoryActionsRoot,
       modalRoot,
@@ -175,8 +185,8 @@ export class Game {
   }
 
   private seedWorld(): void {
-    seedDemoProductionLines(this.grid, this.simulation);
     seedFixedShops(this.grid);
+    seedRandomProductionLines(this.grid, this.simulation);
   }
 
   startGame(): void {
@@ -192,21 +202,29 @@ export class Game {
 
     this.grid = new Grid();
     this.simulation = new Simulation(this.grid);
-    seedBasicPipeline(this.grid, this.simulation);
     seedFixedShops(this.grid);
+    seedStarterPipeline(this.grid, this.simulation);
 
-    this.playerGold.setAmount(0);
+    if (!TutorialGuide.isCompleted()) {
+      this.tutorial.start();
+      this.playerGold.setAmount(TUTORIAL_START_GOLD);
+    } else {
+      this.playerGold.setAmount(0);
+    }
     this.heldCats.clear();
     this.inventory.clear();
+    this.lastTutorialHint = '';
+    this.syncTutorialPanel();
     this.enterPickupMode();
     this.hotbar.select(PICKUP_SLOT_INDEX);
     this.lastPlayerCellKey = null;
-    this.player.resetToCenter();
+    this.player.resetToSpawn();
     this.applyCharacterStats();
     this.buildingShopPanel.close();
     this.attributeShopPanel.close();
     this.goldBar.refresh();
     this.rebirthPanel.refresh();
+    this.hotbar.refresh();
     this.updateActionButtons();
   }
 
@@ -251,6 +269,12 @@ export class Game {
       );
       this.checkShopSell();
       this.autoBagFromBoxUnderPlayer();
+      this.tutorial.update(dt, {
+        simulation: this.simulation,
+        playerGold: this.playerGold,
+        heldCats: this.heldCats,
+      });
+      this.syncTutorialPanel();
     }
 
     this.goldSellFx.update(dt);
@@ -300,6 +324,9 @@ export class Game {
       getBoxCount: (gx, gy) => this.simulation.getBoxCount(gx, gy),
       getBoxDrawScale: (gx, gy) => this.simulation.getBoxDrawScale(gx, gy),
       getNestSpawnCountdown: (gx, gy) => this.simulation.getNestSpawnCountdown(gx, gy),
+      tutorialHighlightCell: this.tutorial.isActive()
+        ? this.tutorial.getHighlightCell()
+        : null,
     });
 
     this.heldCatStackOverlay.update(this.player, this.heldCats.getStack());
@@ -375,6 +402,10 @@ export class Game {
     this.syncHeldDirectionToSlot();
     const building = { ...this.heldBuilding };
 
+    if (!this.tutorial.canPlaceBuilding(building.type, gx, gy)) {
+      return;
+    }
+
     if (!canPlaceBuilding(this.grid, gx, gy, building)) {
       return;
     }
@@ -409,6 +440,26 @@ export class Game {
 
     this.hotbar.refresh();
     this.updateActionButtons();
+    this.tutorial.onBuildingPlaced(building.type, gx, gy);
+    this.syncTutorialPanel();
+  }
+
+  private syncTutorialPanel(): void {
+    if (!this.tutorial.isActive()) {
+      if (this.lastTutorialHint) {
+        this.tutorialPanel.hide();
+        this.lastTutorialHint = '';
+      }
+      return;
+    }
+
+    const hint = this.tutorial.getCurrentHint();
+    if (hint === this.lastTutorialHint) {
+      return;
+    }
+
+    this.tutorialPanel.show(hint);
+    this.lastTutorialHint = hint;
   }
 
   private checkShopSell(): void {
@@ -495,7 +546,7 @@ export class Game {
       return;
     }
 
-    this.grid.clearProductionBuildings();
+    const { amount, count } = this.grid.clearProductionBuildings();
     this.simulation.clearAll();
     this.enterPickupMode();
     this.hotbar.select(PICKUP_SLOT_INDEX);
@@ -503,6 +554,19 @@ export class Game {
     this.buildingShopPanel.close();
     this.attributeShopPanel.close();
     this.updateActionButtons();
+
+    if (amount <= 0) {
+      return;
+    }
+
+    const { gx, gy } = getPlayerCell(this.player);
+    this.goldSellFx.play(gx, gy, amount, () => {
+      this.playerGold.add(amount);
+      this.goldBar.refresh();
+      this.goldBar.pulseReceive();
+      this.rebirthPanel.refresh();
+      this.refreshShopPanels();
+    }, getGoldSellCoinCount(count));
   }
 
   private sellAllInventoryBuildings(): void {
@@ -544,6 +608,8 @@ export class Game {
       this.rebirthPanel.refresh();
       this.refreshShopPanels();
     }, getGoldSellCoinCount(count));
+    this.tutorial.onCatsSold();
+    this.syncTutorialPanel();
   }
 
   private tryRebirth(): void {
@@ -572,6 +638,8 @@ export class Game {
       return;
     }
     this.heldCats.addEntries(entries);
+    this.tutorial.onCatsCollected();
+    this.syncTutorialPanel();
     this.hotbar.refresh();
     this.updateActionButtons();
   }

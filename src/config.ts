@@ -45,6 +45,8 @@ export const COLOR_BUILDING_MUTATION_GATE = '#9b59b6';
 export const COLOR_BUILDING_PREVIEW = 'rgba(255, 255, 255, 0.45)';
 export const COLOR_TILE_PLACE_VALID = 'rgba(72, 180, 72, 0.5)';
 export const COLOR_TILE_PLACE_INVALID = 'rgba(230, 130, 50, 0.5)';
+/** 新手引导高亮：绿色 RGB，透明度由 Renderer 闪烁动画控制 */
+export const COLOR_TILE_TUTORIAL_RGB = '72, 180, 72';
 
 /** 商店 UI（购买面板、地图名牌）整体缩放 */
 export const SHOP_UI_SCALE = 1.5;

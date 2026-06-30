@@ -1,4 +1,5 @@
 import { GRID_SIZE } from '../config';
+import { getBuildingPrice } from '../data/buildings';
 import { BuildingType, type Building } from './Building';
 import type { BuildingShopKind } from './buildingShopCatalog';
 
@@ -171,13 +172,28 @@ export class Grid {
     }
   }
 
-  /** 清除猫窝、传送带、包装箱与变异门，保留商店等地标 */
-  clearProductionBuildings(): void {
+  /** 清除猫窝、传送带、包装箱与变异门，保留商店等地标；按购买原价汇总回收金额 */
+  clearProductionBuildings(): { amount: number; count: number } {
+    let amount = 0;
+    let count = 0;
+
     for (let gy = 0; gy < GRID_SIZE; gy++) {
       for (let gx = 0; gx < GRID_SIZE; gx++) {
+        const building = this.cells[gy][gx];
+        if (building) {
+          amount += getBuildingPrice(building.type, building.level);
+          count += 1;
+        }
+        const gate = this.mutationGates[gy][gx];
+        if (gate) {
+          amount += getBuildingPrice(gate.type, gate.level);
+          count += 1;
+        }
         this.cells[gy][gx] = null;
         this.mutationGates[gy][gx] = null;
       }
     }
+
+    return { amount, count };
   }
 }

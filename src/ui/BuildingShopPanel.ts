@@ -19,6 +19,7 @@ export class BuildingShopPanel {
   private inventory: Inventory;
   private playerGold: PlayerGold;
   private onChange: () => void;
+  private onPurchase?: (kind: BuildingShopKind, level: number) => void;
   private titleEl: HTMLElement;
   private itemsEl: HTMLElement;
   private openKind: BuildingShopKind | null = null;
@@ -28,11 +29,13 @@ export class BuildingShopPanel {
     inventory: Inventory,
     playerGold: PlayerGold,
     onChange: () => void,
+    onPurchase?: (kind: BuildingShopKind, level: number) => void,
   ) {
     this.container = container;
     this.inventory = inventory;
     this.playerGold = playerGold;
     this.onChange = onChange;
+    this.onPurchase = onPurchase;
     this.container.innerHTML = '';
     this.container.className = 'building-shop-panel is-hidden';
 
@@ -134,6 +137,7 @@ export class BuildingShopPanel {
       return;
     }
     this.onChange();
+    this.onPurchase?.(kind, level);
     this.refresh();
   }
 }

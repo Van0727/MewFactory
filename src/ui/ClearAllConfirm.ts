@@ -41,7 +41,7 @@ export class ClearAllConfirm {
 
     const clearBtn = makeBtn('clear-factory-btn', '清空', '工厂');
     clearBtn.addEventListener('click', () => {
-      this.ask('清除工厂内所有流水线？', onClear);
+      this.ask('清除并回收工厂所有流水线？', onClear);
     });
 
     actionsRoot.appendChild(autoBuildBtn);

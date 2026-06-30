@@ -5,6 +5,7 @@ import {
   COLOR_LIGHT_FRONT,
   COLOR_TILE_PLACE_INVALID,
   COLOR_TILE_PLACE_VALID,
+  COLOR_TILE_TUTORIAL_RGB,
   GRID_SIZE,
   TILE_GROUND_BLEED_PX,
 } from '../config';
@@ -48,9 +49,10 @@ export interface DrawState {
   getBoxCount: (gx: number, gy: number) => number;
   getBoxDrawScale: (gx: number, gy: number) => number;
   getNestSpawnCountdown: (gx: number, gy: number) => number | null;
+  tutorialHighlightCell?: { gx: number; gy: number } | null;
 }
 
-type TileHighlight = 'valid' | 'invalid' | null;
+type TileHighlight = 'valid' | 'invalid' | 'tutorial' | null;
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -146,6 +148,8 @@ export class Renderer {
 
       if (highlight) {
         this.drawTileHighlight(tile.gx, tile.gy, highlight);
+      } else if (this.isTutorialHighlightCell(tile.gx, tile.gy, state)) {
+        this.drawTileHighlight(tile.gx, tile.gy, 'tutorial');
       }
 
       if (building?.type === BuildingType.PackingBox) {
@@ -225,6 +229,15 @@ export class Renderer {
     return state.canPlaceAtPreview ? 'valid' : 'invalid';
   }
 
+  private isTutorialHighlightCell(
+    gx: number,
+    gy: number,
+    state: DrawState,
+  ): boolean {
+    const cell = state.tutorialHighlightCell;
+    return cell !== null && cell !== undefined && cell.gx === gx && cell.gy === gy;
+  }
+
   private drawTile(gx: number, gy: number): void {
     const isLight = (gx + gy) % 2 === 0;
     const frontColor = isLight ? COLOR_DARK_FRONT : COLOR_LIGHT_FRONT;
@@ -239,8 +252,16 @@ export class Renderer {
 
   private drawTileHighlight(gx: number, gy: number, highlight: Exclude<TileHighlight, null>): void {
     const topCorners = getTileTopCorners(gx, gy, this.origin);
-    const overlay =
-      highlight === 'valid' ? COLOR_TILE_PLACE_VALID : COLOR_TILE_PLACE_INVALID;
+    let overlay: string;
+    if (highlight === 'valid') {
+      overlay = COLOR_TILE_PLACE_VALID;
+    } else if (highlight === 'invalid') {
+      overlay = COLOR_TILE_PLACE_INVALID;
+    } else {
+      const pulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.006);
+      const alpha = 0.22 + pulse * 0.38;
+      overlay = `rgba(${COLOR_TILE_TUTORIAL_RGB}, ${alpha})`;
+    }
     this.fillPolygon(topCorners, overlay);
   }
 

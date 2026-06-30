@@ -88,20 +88,14 @@ function perpendicularDirs(dir: Direction): Direction[] {
   }
 }
 
-/**
- * 转弯格保持 incoming 方向，猫走到带末后由 Simulation.resolveConveyorEnd 转向。
- * 直行格使用 outgoing 方向。
- */
+/** 每格传送带朝向路径的 outgoing 方向；转弯格指向转向后的方向。 */
 function conveyorDirectionAt(
   path: { gx: number; gy: number }[],
   index: number,
 ): Direction {
-  const prev = path[index - 1];
   const curr = path[index];
   const next = path[index + 1];
-  const inDir = directionBetween(prev, curr)!;
-  const outDir = directionBetween(curr, next)!;
-  return outDir !== inDir ? inDir : outDir;
+  return directionBetween(curr, next)!;
 }
 
 /** 根据折线路径计算每格朝向，并校验相邻连通 */

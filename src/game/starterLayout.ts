@@ -7,41 +7,53 @@ import {
   type Building,
 } from './Building';
 import type { Grid } from './Grid';
+import {
+  findMaxPipelineLayout,
+  findPipelineLayout,
+  markLayoutBlocked,
+  placePipelineLayout,
+  type PipelineLayout,
+  type PipelineParts,
+} from './pipelineLayout';
+import { getPlayerSpawnCell, userCellToGrid } from './gridCoords';
 import type { Simulation } from './Simulation';
 
-interface PipelineLevels {
-  nest: number;
-  conveyor: number;
-  box: number;
-}
+const STARTER_LEVEL = 1;
+const STARTER_CONVEYOR_COUNT = 5;
+const STARTER_NEST_USER_CELL = { x: 2, y: 5 };
 
-export const PIPELINE_CONVEYOR_COUNT = 6;
+const MAP_FILL_RATIO = 0.8;
+const MIN_STARTER_LINES = 3;
+const MAX_STARTER_LINES = 5;
 const GATES_PER_PIPELINE = 3;
 const MAX_GATE_LEVEL = BUILDING_MAX_LEVEL.MutationGate;
 
-const MIN_LEVELS: PipelineLevels = { nest: 1, conveyor: 1, box: 1 };
-
-export interface PipelineRowParts {
-  nest: Building;
-  conveyors: Building[];
-  gates: (Building | null)[];
-  box: Building;
+function cellKey(gx: number, gy: number): string {
+  return `${gx},${gy}`;
 }
 
-function levelsForDemoLine(lineLevel: number): PipelineLevels {
-  const level = Math.max(1, Math.min(5, lineLevel));
-  return {
-    nest: level,
-    conveyor: level,
-    box: level,
-  };
+function randomInt(min: number, max: number): number {
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+/** 将 total 随机拆成 buckets 份（每份 ≥ 0） */
+function randomPartition(total: number, buckets: number): number[] {
+  const counts = new Array<number>(buckets).fill(0);
+  for (let i = 0; i < total; i++) {
+    counts[Math.floor(Math.random() * buckets)] += 1;
+  }
+  return counts;
 }
 
 /** 从传送带节中随机选出若干节挂变异门 */
 function pickRandomGateIndices(conveyorCount: number, gateCount: number): number[] {
+  if (conveyorCount <= 0 || gateCount <= 0) {
+    return [];
+  }
+  const pickCount = Math.min(gateCount, conveyorCount);
   const pool = Array.from({ length: conveyorCount }, (_, i) => i);
   const picked: number[] = [];
-  for (let g = 0; g < gateCount; g++) {
+  for (let g = 0; g < pickCount; g++) {
     const pick = Math.floor(Math.random() * pool.length);
     picked.push(pool[pick]);
     pool.splice(pick, 1);
@@ -53,93 +65,30 @@ function randomGateLevel(): number {
   return 1 + Math.floor(Math.random() * MAX_GATE_LEVEL);
 }
 
-export function getPipelineBoxX(): number {
-  return 1 + PIPELINE_CONVEYOR_COUNT;
+function randomLineLevel(): number {
+  return randomInt(1, 5);
 }
 
-/** 流水线行 x=0..boxX 是否为空（含商店等地标） */
-export function isPipelineRowAvailable(grid: Grid, row: number): boolean {
-  const boxX = getPipelineBoxX();
-  for (let gx = 0; gx <= boxX; gx++) {
-    if (!grid.isEmpty(gx, row)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/** 扫描所有可放置完整流水线的行 */
-export function findAvailablePipelineRows(grid: Grid): number[] {
-  const rows: number[] = [];
+function gatherStarterBlocked(grid: Grid): Set<string> {
+  const blocked = new Set<string>();
   for (let gy = 0; gy < GRID_SIZE; gy++) {
-    if (isPipelineRowAvailable(grid, gy)) {
-      rows.push(gy);
+    for (let gx = 0; gx < GRID_SIZE; gx++) {
+      if (!grid.isEmpty(gx, gy)) {
+        blocked.add(cellKey(gx, gy));
+      }
     }
   }
-  return rows;
+  const spawn = getPlayerSpawnCell();
+  blocked.add(cellKey(spawn.gx, spawn.gy));
+  return blocked;
 }
 
-/** 按指定部件放置一行流水线（方向固定：窝/带 Right，箱 Left） */
-export function placePipelineRow(
-  grid: Grid,
-  simulation: Simulation,
-  row: number,
-  parts: PipelineRowParts,
-): void {
-  const nestX = 0;
-  const boxX = getPipelineBoxX();
-
-  const nest = createBuilding(
-    BuildingType.CatNest,
-    parts.nest.level,
-    Direction.Right,
-  );
-  grid.set(nestX, row, nest);
-  simulation.onBuildingPlaced(nestX, row, nest, { nestSpawnImmediate: true });
-
-  for (let i = 0; i < PIPELINE_CONVEYOR_COUNT; i++) {
-    const gx = nestX + 1 + i;
-    const src = parts.conveyors[i];
-    const conveyor = createBuilding(
-      BuildingType.Conveyor,
-      src.level,
-      Direction.Right,
-    );
-    grid.set(gx, row, conveyor);
-    simulation.onBuildingPlaced(gx, row, conveyor);
-
-    const gate = parts.gates[i];
-    if (gate) {
-      const placedGate = createBuilding(
-        BuildingType.MutationGate,
-        gate.level,
-        conveyor.direction,
-      );
-      grid.setMutationGate(gx, row, placedGate);
-    }
-  }
-
-  const box = createBuilding(
-    BuildingType.PackingBox,
-    parts.box.level,
-    Direction.Left,
-  );
-  grid.set(boxX, row, box);
-  simulation.onBuildingPlaced(boxX, row, box);
-}
-
-/** 猫窝 → 6 节传送带（随机 3 节挂 Lv.1~4 变异门）→ 包装箱 */
-function seedPipeline(
-  grid: Grid,
-  simulation: Simulation,
-  row: number,
-  levels: PipelineLevels,
-): void {
+function buildPipelineParts(conveyorCount: number, level: number): PipelineParts {
   const gateIndices = new Set(
-    pickRandomGateIndices(PIPELINE_CONVEYOR_COUNT, GATES_PER_PIPELINE),
+    pickRandomGateIndices(conveyorCount, GATES_PER_PIPELINE),
   );
   const gates: (Building | null)[] = Array.from(
-    { length: PIPELINE_CONVEYOR_COUNT },
+    { length: conveyorCount },
     (_, i) => {
       if (!gateIndices.has(i)) {
         return null;
@@ -152,44 +101,105 @@ function seedPipeline(
     },
   );
 
-  placePipelineRow(grid, simulation, row, {
-    nest: createBuilding(BuildingType.CatNest, levels.nest, Direction.Right),
-    conveyors: Array.from({ length: PIPELINE_CONVEYOR_COUNT }, () =>
-      createBuilding(BuildingType.Conveyor, levels.conveyor, Direction.Right),
+  return {
+    nest: createBuilding(BuildingType.CatNest, level, Direction.Right),
+    conveyors: Array.from({ length: conveyorCount }, () =>
+      createBuilding(BuildingType.Conveyor, level, Direction.Right),
     ),
     gates,
-    box: createBuilding(BuildingType.PackingBox, levels.box, Direction.Left),
-  });
+    box: createBuilding(BuildingType.PackingBox, level, Direction.Left),
+  };
+}
+
+function placeStarterLine(
+  grid: Grid,
+  simulation: Simulation,
+  layout: PipelineLayout,
+  level: number,
+): void {
+  const conveyorCount = layout.filter((cell) => cell.role === 'conveyor').length;
+  placePipelineLayout(grid, simulation, layout, buildPipelineParts(conveyorCount, level));
+}
+
+function tryPlaceLine(
+  grid: Grid,
+  blocked: Set<string>,
+  desiredConveyors: number,
+): PipelineLayout | null {
+  const exact = findPipelineLayout(grid, blocked, desiredConveyors);
+  if (exact) {
+    return exact;
+  }
+  const fallback = findMaxPipelineLayout(grid, blocked, desiredConveyors);
+  return fallback?.layout ?? null;
 }
 
 /**
- * 五条演示流水线：Lv.1 ~ Lv.5 猫窝/传送带/包装箱；每条 6 节传送带、3 个随机变异门。
+ * 随机生成 3~5 条折线流水线，约占棋盘 80% 格子；每条线长度随机。
+ * 需先调用 seedFixedShops，以便避开商店与玩家出生格。
  */
-export function seedDemoProductionLines(grid: Grid, simulation: Simulation): void {
-  const rows = [0, 1, 2, 3, 4];
+export function seedRandomProductionLines(grid: Grid, simulation: Simulation): void {
+  const targetCells = Math.round(GRID_SIZE * GRID_SIZE * MAP_FILL_RATIO);
+  const lineCount = randomInt(MIN_STARTER_LINES, MAX_STARTER_LINES);
+  const blocked = gatherStarterBlocked(grid);
 
-  for (let i = 0; i < rows.length; i++) {
-    seedPipeline(grid, simulation, rows[i], levelsForDemoLine(i + 1));
+  const totalConveyors = Math.max(0, targetCells - lineCount * 2);
+  const conveyorCounts = randomPartition(totalConveyors, lineCount).sort(
+    (a, b) => b - a,
+  );
+
+  let usedCells = 0;
+
+  for (const desiredConveyors of conveyorCounts) {
+    const layout = tryPlaceLine(grid, blocked, desiredConveyors);
+    if (!layout || layout.length < 2) {
+      continue;
+    }
+    placeStarterLine(grid, simulation, layout, randomLineLevel());
+    markLayoutBlocked(blocked, layout);
+    usedCells += layout.length;
+  }
+
+  const minAcceptable = Math.floor(targetCells * 0.85);
+  while (usedCells < minAcceptable) {
+    const remaining = targetCells - usedCells;
+    if (remaining < 2) {
+      break;
+    }
+    const layout = tryPlaceLine(grid, blocked, remaining - 2);
+    if (!layout || layout.length < 2) {
+      break;
+    }
+    placeStarterLine(grid, simulation, layout, randomLineLevel());
+    markLayoutBlocked(blocked, layout);
+    usedCells += layout.length;
   }
 }
 
-/** 单条 Lv.1 基础流水线（正式开始游戏用） */
-export function seedBasicPipeline(grid: Grid, simulation: Simulation): void {
-  const row = Math.floor(GRID_SIZE / 2);
-  seedPipeline(grid, simulation, row, MIN_LEVELS);
-}
-
-/** @deprecated 使用 autoBuildFromInventory；保留供 demo 测试 */
-export function autoBuildBasicPipeline(grid: Grid, simulation: Simulation): void {
-  const preferred = Math.floor(GRID_SIZE / 2);
-  const rows = findAvailablePipelineRows(grid);
-  const row = rows.includes(preferred)
-    ? preferred
-    : rows[0] ?? preferred;
-  seedPipeline(grid, simulation, row, MIN_LEVELS);
-}
-
-/** @deprecated 使用 seedDemoProductionLines */
+/** 开局地图：用户格 (2,5) 放 Lv.1 猫窝朝右，右侧连续 5 节 Lv.1 传送带朝右 */
 export function seedStarterPipeline(grid: Grid, simulation: Simulation): void {
-  seedDemoProductionLines(grid, simulation);
+  const { gx: nestGx, gy: nestGy } = userCellToGrid(
+    STARTER_NEST_USER_CELL.x,
+    STARTER_NEST_USER_CELL.y,
+  );
+
+  const nest = createBuilding(
+    BuildingType.CatNest,
+    STARTER_LEVEL,
+    Direction.Right,
+  );
+  grid.set(nestGx, nestGy, nest);
+  simulation.onBuildingPlaced(nestGx, nestGy, nest, { nestSpawnImmediate: true });
+
+  for (let i = 0; i < STARTER_CONVEYOR_COUNT; i++) {
+    const gx = nestGx + 1 + i;
+    const gy = nestGy;
+    const conveyor = createBuilding(
+      BuildingType.Conveyor,
+      STARTER_LEVEL,
+      Direction.Right,
+    );
+    grid.set(gx, gy, conveyor);
+    simulation.onBuildingPlaced(gx, gy, conveyor);
+  }
 }
