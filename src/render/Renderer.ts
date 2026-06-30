@@ -129,7 +129,7 @@ export class Renderer {
 
     for (const tile of tiles) {
       const highlight = this.getTileHighlight(tile.gx, tile.gy, state);
-      this.drawTile(tile.gx, tile.gy, highlight);
+      this.drawTile(tile.gx, tile.gy);
 
       const building = state.grid.get(tile.gx, tile.gy);
       if (building) {
@@ -142,6 +142,10 @@ export class Renderer {
       const gate = state.grid.getMutationGate(tile.gx, tile.gy);
       if (gate) {
         drawBuilding(this.ctx, tile.gx, tile.gy, gate, this.origin);
+      }
+
+      if (highlight) {
+        this.drawTileHighlight(tile.gx, tile.gy, highlight);
       }
 
       if (building?.type === BuildingType.PackingBox) {
@@ -221,7 +225,7 @@ export class Renderer {
     return state.canPlaceAtPreview ? 'valid' : 'invalid';
   }
 
-  private drawTile(gx: number, gy: number, highlight: TileHighlight): void {
+  private drawTile(gx: number, gy: number): void {
     const isLight = (gx + gy) % 2 === 0;
     const frontColor = isLight ? COLOR_DARK_FRONT : COLOR_LIGHT_FRONT;
     const topCorners = getTileTopCorners(gx, gy, this.origin);
@@ -231,12 +235,13 @@ export class Renderer {
     // Neutral under-fill: any sub-pixel gap between tiles shows this, not the dark background.
     this.fillPolygon(expandCorners(topCorners, TILE_GROUND_BLEED_PX), COLOR_GROUND_BASE);
     drawSpriteInIsoTile(this.ctx, tileSprite, topCorners);
+  }
 
-    if (highlight) {
-      const overlay =
-        highlight === 'valid' ? COLOR_TILE_PLACE_VALID : COLOR_TILE_PLACE_INVALID;
-      this.fillPolygon(topCorners, overlay);
-    }
+  private drawTileHighlight(gx: number, gy: number, highlight: Exclude<TileHighlight, null>): void {
+    const topCorners = getTileTopCorners(gx, gy, this.origin);
+    const overlay =
+      highlight === 'valid' ? COLOR_TILE_PLACE_VALID : COLOR_TILE_PLACE_INVALID;
+    this.fillPolygon(topCorners, overlay);
   }
 
   private drawPlayer(player: Player, heldBuilding: Building | null, _heldCatCount: number): void {

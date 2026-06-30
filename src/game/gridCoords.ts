@@ -69,3 +69,17 @@ export function getSellShopCenter(): { x: number; y: number } {
     y: SELL_SHOP_GRID_CELL.gy + 0.5,
   };
 }
+
+/** 底行出售商店右侧两个可建空格（不含属性商店格） */
+const SELL_RIGHT_BLANK_CELLS = [
+  { gx: SELL_SHOP_GRID_CELL.gx + SELL_SHOP_WIDTH_CELLS, gy: SELL_SHOP_GRID_CELL.gy },
+  { gx: ATTRIBUTE_SHOP_GRID_CELL.gx + 1, gy: SELL_SHOP_GRID_CELL.gy },
+] as const;
+
+/** 自动搭建时禁止放置包装箱（流水线终点）的格子 */
+export function isForbiddenAutoBuildBoxCell(gx: number, gy: number): boolean {
+  if (gx === GRID_SIZE - 1) {
+    return true;
+  }
+  return SELL_RIGHT_BLANK_CELLS.some((c) => c.gx === gx && c.gy === gy);
+}

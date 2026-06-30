@@ -1,11 +1,11 @@
 import { BuildingType, type Building } from '../game/Building';
 import {
   BUILDING_GROUND_LIFT_PX,
+  HELD_BUILDING_DRAW_SCALE,
   PACKING_BOX_GROUND_LIFT_PX,
-  PLAYER_SPRITE_ANCHOR_X,
-  PLAYER_SPRITE_ANCHOR_Y,
+  SPRITE_SOURCE_SCALE,
 } from '../config';
-import { getBuildingSprite } from './assets';
+import { getBuildingSprite, getSprite } from './assets';
 import { type IsoOrigin } from './isometric';
 import { scaleCanvasUi } from '../ui/uiScale';
 import { directionToAngleForBuilding, drawLiftedBuildingInCell, drawSpriteFlatInCell, drawSpriteInCell } from './spriteDraw';
@@ -26,6 +26,16 @@ function getGroundLiftBasePx(type: BuildingType): number {
   return type === BuildingType.PackingBox
     ? PACKING_BOX_GROUND_LIFT_PX
     : BUILDING_GROUND_LIFT_PX;
+}
+
+function getHeldHeadOffset(origin: IsoOrigin): { headTopFromFeet: number; gap: number } {
+  const playerImg = getSprite('player');
+  const worldScale = origin.viewScale / SPRITE_SOURCE_SCALE;
+  const playerHeight = playerImg.naturalHeight * worldScale;
+  return {
+    headTopFromFeet: playerHeight * 0.48,
+    gap: scaleCanvasUi(3, origin.viewScale),
+  };
 }
 
 export function drawBuilding(
@@ -64,7 +74,7 @@ export function drawBuildingInCell(
   drawSpriteInCell(ctx, sprite, gx, gy, origin, { rotation, drawScale });
 }
 
-/** 手持建筑：无透视，正方向绘制 */
+/** 手持建筑：无透视，显示在玩家头顶上方 */
 export function drawHeldBuildingInCell(
   ctx: CanvasRenderingContext2D,
   gx: number,
@@ -74,22 +84,21 @@ export function drawHeldBuildingInCell(
   drawScale = 1,
 ): void {
   const sprite = getBuildingSprite(building);
-  const rotation = buildingNeedsRotation(building.type)
-    ? directionToAngleForBuilding(building)
-    : 0;
+  const heldScale = drawScale * HELD_BUILDING_DRAW_SCALE;
+  const { headTopFromFeet, gap } = getHeldHeadOffset(origin);
+  const offsetY = -(headTopFromFeet + gap);
+  const rotation =
+    building.type === BuildingType.MutationGate
+      ? Math.PI / 2
+      : buildingNeedsRotation(building.type)
+        ? directionToAngleForBuilding(building)
+        : 0;
 
-  if (buildingUsesGroundLift(building.type)) {
-    const liftPx =
-      scaleCanvasUi(getGroundLiftBasePx(building.type), origin.viewScale) * drawScale;
-    drawSpriteFlatInCell(ctx, sprite, gx, gy, origin, {
-      rotation,
-      drawScale,
-      anchorX: PLAYER_SPRITE_ANCHOR_X,
-      anchorY: PLAYER_SPRITE_ANCHOR_Y,
-      offsetY: -liftPx,
-    });
-    return;
-  }
-
-  drawSpriteFlatInCell(ctx, sprite, gx, gy, origin, { rotation, drawScale });
+  drawSpriteFlatInCell(ctx, sprite, gx, gy, origin, {
+    rotation,
+    drawScale: heldScale,
+    anchorX: 0.5,
+    anchorY: 1,
+    offsetY,
+  });
 }

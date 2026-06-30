@@ -151,8 +151,9 @@ export class Grid {
     return building?.type === BuildingType.Conveyor;
   }
 
+  /** 传送带格可放置或替换变异门 */
   canPlaceMutationGate(gx: number, gy: number): boolean {
-    return this.hasConveyor(gx, gy) && this.getMutationGate(gx, gy) === null;
+    return this.hasConveyor(gx, gy);
   }
 
   hasPickupTarget(gx: number, gy: number): boolean {
@@ -166,6 +167,16 @@ export class Grid {
         if (building) {
           callback(gx, gy, building);
         }
+      }
+    }
+  }
+
+  /** 清除猫窝、传送带、包装箱与变异门，保留商店等地标 */
+  clearProductionBuildings(): void {
+    for (let gy = 0; gy < GRID_SIZE; gy++) {
+      for (let gx = 0; gx < GRID_SIZE; gx++) {
+        this.cells[gy][gx] = null;
+        this.mutationGates[gy][gx] = null;
       }
     }
   }

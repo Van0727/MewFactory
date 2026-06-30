@@ -54,6 +54,8 @@ export const PACK_BOX_PULSE_DURATION = 0.25;
 export const BUILDING_GROUND_LIFT_PX = 20;
 /** 包装箱抬升高度（为猫窝的一半） */
 export const PACKING_BOX_GROUND_LIFT_PX = BUILDING_GROUND_LIFT_PX / 2;
+/** 手持建筑相对格内尺寸的绘制缩放 */
+export const HELD_BUILDING_DRAW_SCALE = 0.75;
 export const CAT_ARRIVE_EPSILON = 0.04;
 /** 小猫经过变异门时的缩放脉冲时长（秒） */
 export const CAT_MUTATION_PULSE_DURATION = 0.35;

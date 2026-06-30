@@ -72,6 +72,20 @@ export class Simulation {
     return this.cats;
   }
 
+  clearAll(): void {
+    this.cats = [];
+    this.nestSpawnTimers.clear();
+    this.boxPulseElapsed.clear();
+    for (let gy = 0; gy < GRID_SIZE; gy++) {
+      for (let gx = 0; gx < GRID_SIZE; gx++) {
+        this.boxCounts[gy][gx] = 0;
+        this.boxValues[gy][gx] = 0;
+        this.boxCatStacks[gy][gx] = [];
+        this.boxDisplayBaselines[gy][gx] = null;
+      }
+    }
+  }
+
   getBoxCount(gx: number, gy: number): number {
     if (!this.grid.inBounds(gx, gy)) {
       return 0;

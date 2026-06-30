@@ -9,6 +9,8 @@ import { BuildingShopPanel } from '../ui/BuildingShopPanel';
 import { AttributeShopPanel } from '../ui/AttributeShopPanel';
 import { RebirthPanel } from '../ui/RebirthPanel';
 import { RebirthToast } from '../ui/RebirthToast';
+import { ClearAllConfirm } from '../ui/ClearAllConfirm';
+import { GmGoldButton } from '../ui/GmGoldButton';
 import { HeldCatStackOverlay } from '../ui/HeldCatStackOverlay';
 import { StartGamePanel } from '../ui/StartGamePanel';
 import {
@@ -17,6 +19,7 @@ import {
   type Building,
 } from './Building';
 import { IntroDemo } from './IntroDemo';
+import { autoBuildFromInventory, previewAutoBuild } from './autoBuild';
 import { seedBasicPipeline, seedDemoProductionLines } from './starterLayout';
 import { seedFixedShops } from './fixedShops';
 import { Grid } from './Grid';
@@ -73,9 +76,12 @@ export class Game {
     shopContainer: HTMLElement,
     attributeShopContainer: HTMLElement,
     goldBarContainer: HTMLElement,
+    gmGoldBtnContainer: HTMLElement,
     uiOverlay: HTMLElement,
     rebirthPanelContainer: HTMLElement,
     startGamePanelContainer: HTMLElement,
+    factoryActionsRoot: HTMLElement,
+    modalRoot: HTMLElement,
   ) {
     const gameContainer = canvas.closest('#game-container');
     if (!gameContainer) {
@@ -87,8 +93,9 @@ export class Game {
     this.input = new InputManager();
     this.renderer = new Renderer(canvas);
     this.hotbar = new Hotbar(hotbarContainer, this.inventory, this.heldCats);
-    this.actionButtons = new ActionButtons(actionButtonsContainer);
+    this.actionButtons = new ActionButtons(actionButtonsContainer, uiOverlay, canvas);
     this.goldBar = new GoldBar(goldBarContainer, this.playerGold);
+    new GmGoldButton(gmGoldBtnContainer, () => this.addGmGold(10000));
     this.goldSellFx = new GoldSellFx(canvas, uiOverlay, this.goldBar);
     this.rebirthToast = new RebirthToast(uiOverlay);
     this.rebirthPanel = new RebirthPanel(
@@ -111,6 +118,13 @@ export class Game {
     );
     this.heldCatStackOverlay = new HeldCatStackOverlay(canvas, uiOverlay);
     this.startGamePanel = new StartGamePanel(startGamePanelContainer, () => this.startGame());
+    new ClearAllConfirm(
+      factoryActionsRoot,
+      modalRoot,
+      () => this.clearAllProductionLines(),
+      () => this.previewAutoBuild(),
+      () => this.autoBuildPipeline(),
+    );
     this.applyCharacterStats();
     this.introDemo = new IntroDemo({
       player: this.player,
@@ -242,14 +256,38 @@ export class Game {
     this.goldSellFx.update(dt);
     this.updateActionButtons();
 
+    if (this.gamePhase === 'playing' && this.mode === 'place' && this.heldBuilding) {
+      this.actionButtons.updatePlaceHintPosition(this.player);
+    }
+
     this.simulation.update(dt);
 
     const inPlaceMode = this.mode === 'place' && this.heldBuilding !== null;
-    const previewCell = inPlaceMode ? getPlayerCell(this.player) : null;
-    const canPlaceAtPreview =
-      inPlaceMode && previewCell && this.heldBuilding
-        ? canPlaceBuilding(this.grid, previewCell.gx, previewCell.gy, this.heldBuilding)
-        : null;
+    const playerCell = inPlaceMode ? getPlayerCell(this.player) : null;
+    let previewCell = playerCell;
+    let canPlaceAtPreview: boolean | null = null;
+
+    if (inPlaceMode && playerCell && this.heldBuilding) {
+      if (this.heldBuilding.type === BuildingType.MutationGate) {
+        if (this.grid.hasConveyor(playerCell.gx, playerCell.gy)) {
+          canPlaceAtPreview = canPlaceBuilding(
+            this.grid,
+            playerCell.gx,
+            playerCell.gy,
+            this.heldBuilding,
+          );
+        } else {
+          previewCell = null;
+        }
+      } else {
+        canPlaceAtPreview = canPlaceBuilding(
+          this.grid,
+          playerCell.gx,
+          playerCell.gy,
+          this.heldBuilding,
+        );
+      }
+    }
 
     this.renderer.draw({
       player: this.player,
@@ -422,6 +460,49 @@ export class Game {
   private refreshShopPanels(): void {
     this.buildingShopPanel.refresh();
     this.attributeShopPanel.refresh();
+  }
+
+  private addGmGold(amount: number): void {
+    this.playerGold.add(amount);
+    this.goldBar.refresh();
+    this.rebirthPanel.refresh();
+    this.refreshShopPanels();
+  }
+
+  private previewAutoBuild(): { canProceed: boolean; message: string } {
+    if (this.gamePhase !== 'playing') {
+      return { canProceed: false, message: '请先开始游戏' };
+    }
+    return previewAutoBuild(this.grid, this.inventory);
+  }
+
+  private autoBuildPipeline(): void {
+    if (this.gamePhase !== 'playing') {
+      return;
+    }
+    const result = autoBuildFromInventory(this.grid, this.simulation, this.inventory);
+    if (!result.ok) {
+      return;
+    }
+    this.enterPickupMode();
+    this.hotbar.select(PICKUP_SLOT_INDEX);
+    this.hotbar.refresh();
+    this.updateActionButtons();
+  }
+
+  private clearAllProductionLines(): void {
+    if (this.gamePhase !== 'playing') {
+      return;
+    }
+
+    this.grid.clearProductionBuildings();
+    this.simulation.clearAll();
+    this.enterPickupMode();
+    this.hotbar.select(PICKUP_SLOT_INDEX);
+    this.hotbar.refresh();
+    this.buildingShopPanel.close();
+    this.attributeShopPanel.close();
+    this.updateActionButtons();
   }
 
   private sellAllInventoryBuildings(): void {

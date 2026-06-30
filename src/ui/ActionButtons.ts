@@ -1,3 +1,6 @@
+import type { Player } from '../game/Player';
+import { gridCellToOverlayPoint } from '../render/overlayCoords';
+
 export type ActionType = 'place' | 'rotate' | 'pickup';
 
 export interface PlaceModeOptions {
@@ -7,6 +10,8 @@ export interface PlaceModeOptions {
 
 export class ActionButtons {
   private container: HTMLElement;
+  private overlay: HTMLElement;
+  private gameCanvas: HTMLCanvasElement;
   private hintEl: HTMLElement;
   private btnRow: HTMLElement;
   private placeBtn: HTMLButtonElement;
@@ -14,13 +19,19 @@ export class ActionButtons {
   private pickupBtn: HTMLButtonElement;
   private listeners: Array<(action: ActionType) => void> = [];
 
-  constructor(container: HTMLElement) {
+  constructor(
+    container: HTMLElement,
+    overlay: HTMLElement,
+    gameCanvas: HTMLCanvasElement,
+  ) {
     this.container = container;
+    this.overlay = overlay;
+    this.gameCanvas = gameCanvas;
     this.container.innerHTML = '';
 
     this.hintEl = document.createElement('div');
-    this.hintEl.className = 'place-hint';
-    this.container.appendChild(this.hintEl);
+    this.hintEl.className = 'place-hint place-hint-at-feet';
+    this.overlay.appendChild(this.hintEl);
 
     this.btnRow = document.createElement('div');
     this.btnRow.className = 'action-btn-row';
@@ -65,6 +76,20 @@ export class ActionButtons {
     this.rotateBtn.style.display = 'none';
     this.pickupBtn.style.display = 'none';
     this.container.style.display = 'none';
+  }
+
+  updatePlaceHintPosition(player: Player): void {
+    if (this.hintEl.style.display === 'none') {
+      return;
+    }
+    const point = gridCellToOverlayPoint(
+      this.gameCanvas,
+      this.overlay,
+      player.x,
+      player.y,
+    );
+    this.hintEl.style.left = `${point.x}px`;
+    this.hintEl.style.top = `${point.y}px`;
   }
 
   private setRotateEnabled(enabled: boolean): void {

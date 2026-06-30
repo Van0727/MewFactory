@@ -74,6 +74,37 @@ export class Inventory {
     return slot !== null && slot.count > 0;
   }
 
+  /** 展开背包内全部建筑（不含 0 号拾取格） */
+  flattenProductionParts(): Building[] {
+    const parts: Building[] = [];
+    for (const slot of this.slots) {
+      if (!slot) {
+        continue;
+      }
+      for (let i = 0; i < slot.count; i++) {
+        parts.push({ ...slot.building });
+      }
+    }
+    return parts;
+  }
+
+  /** 按堆叠键精确扣除 1 个建筑 */
+  removeOne(building: Building): boolean {
+    const key = buildingStackKey(building);
+    for (let i = 0; i < this.slots.length; i++) {
+      const slot = this.slots[i];
+      if (!slot || buildingStackKey(slot.building) !== key) {
+        continue;
+      }
+      slot.count -= 1;
+      if (slot.count <= 0) {
+        this.slots[i] = null;
+      }
+      return true;
+    }
+    return false;
+  }
+
   clear(): void {
     this.slots = Array.from({ length: INVENTORY_SLOT_COUNT }, () => null);
   }
