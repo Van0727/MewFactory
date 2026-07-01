@@ -13,6 +13,7 @@ import {
 import type { CharacterState } from '../game/CharacterState';
 import { formatCompactNumber } from '../config';
 import type { PlayerRuby } from '../game/PlayerRuby';
+import { getRubyUrl } from '../render/assets';
 
 
 
@@ -185,7 +186,19 @@ export class AttributeShopPanel {
 
       priceEl.className = 'attribute-shop-price';
 
-      priceEl.textContent = canUpgrade ? `${formatCompactNumber(price!)} 红宝石` : '—';
+      if (canUpgrade) {
+        const priceNum = document.createElement('span');
+        priceNum.className = 'attribute-shop-price-num';
+        priceNum.textContent = formatCompactNumber(price!);
+        const priceIcon = document.createElement('img');
+        priceIcon.className = 'attribute-shop-price-ruby';
+        priceIcon.src = getRubyUrl();
+        priceIcon.alt = '';
+        priceEl.appendChild(priceNum);
+        priceEl.appendChild(priceIcon);
+      } else {
+        priceEl.textContent = '—';
+      }
 
 
 

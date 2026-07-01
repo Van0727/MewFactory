@@ -12,11 +12,12 @@ import {
   getConveyorSpeed,
 } from '../data/buildings';
 import { BuildingType, Direction, type Building } from './Building';
-import { createCat, getBoxCenter, getCatCell, getCatDanceSpeedMultiplier, recalculateCatBasePrice, type Cat } from './Cat';
+import { createCat, getBoxCenter, getCatCell, getCatDanceSpeedMultiplier, calculateCatSellPrice, recalculateCatBasePrice, type Cat } from './Cat';
 import type { HeldCatEntry } from './HeldCats';
 import {
   getHeldCatDisplayState,
   getHeldCatEntryCount,
+  getHeldCatSellPrice,
   heldCatDisplayFromCat,
   heldCatDisplaysEqual,
 } from './HeldCats';
@@ -80,23 +81,24 @@ export class Simulation {
       const top = stack[stack.length - 1];
       const topCount = getHeldCatEntryCount(top);
       const takeCount = Math.min(remaining, topCount);
-      const unitValue = top.value / topCount;
+      const unitPrice = getHeldCatSellPrice(top);
       const display = top.display ? { ...top.display } : undefined;
 
       if (takeCount === topCount) {
         stack.pop();
       } else {
         top.count = topCount - takeCount;
-        top.value = unitValue * top.count;
+        top.value = unitPrice * top.count;
       }
 
       for (let i = 0; i < takeCount; i++) {
         taken.push({
           nestLevel: top.nestLevel,
-          value: unitValue,
+          value: unitPrice,
+          spawnBasePrice: top.spawnBasePrice,
           display,
         });
-        value += unitValue;
+        value += unitPrice;
       }
       remaining -= takeCount;
     }
@@ -320,7 +322,7 @@ export class Simulation {
       if (cat.mutations.danceStacks <= 0) {
         continue;
       }
-      // 精舞门：驱动沿中轴左右翻转的相位角；每扇精舞门转速翻倍
+      // 精舞门：驱动沿中轴左右翻转的相位角；转速 = 1 + 门倍率 × 层数
       cat.mutations.danceAngle +=
         dt *
         CAT_DANCE_BASE_SPIN_SPEED *
@@ -370,24 +372,27 @@ export class Simulation {
 
     const display = heldCatDisplayFromCat(cat);
     const stack = this.boxCatStacks[boxGy][boxGx];
+    const sellPrice = calculateCatSellPrice(cat.spawnBasePrice, cat.mutations);
+    cat.basePrice = sellPrice;
     const existing = stack.find((entry) =>
       heldCatDisplaysEqual(getHeldCatDisplayState(entry), display),
     );
 
     if (existing) {
       existing.count = getHeldCatEntryCount(existing) + 1;
-      existing.value += cat.basePrice;
+      existing.value += sellPrice;
     } else {
       stack.push({
         nestLevel: cat.nestLevel,
-        value: cat.basePrice,
+        value: sellPrice,
+        spawnBasePrice: cat.spawnBasePrice,
         count: 1,
         display,
       });
     }
 
     this.syncBoxCount(boxGx, boxGy);
-    this.boxValues[boxGy][boxGx] += cat.basePrice;
+    this.boxValues[boxGy][boxGx] += sellPrice;
   }
 
   private updateCatNests(dt: number): void {

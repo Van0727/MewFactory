@@ -75,11 +75,11 @@ type BuildingConfigMap = {
 /** 所有建筑配置数据（从 CSV 解析） */
 export const BUILDING_CONFIGS: BuildingConfigMap = {
   CatNest: [
-    { level: 1, name: '喵喵窝', rarity: 'N', color: '#ffffff', spriteId: 'cat_1', price: 100, spawnInterval: 5, catBasePrice: 10 },
-    { level: 2, name: '旺旺窝', rarity: 'R', color: '#4caf50', spriteId: 'cat_2', price: 300, spawnInterval: 5, catBasePrice: 30 },
-    { level: 3, name: '哞哞窝', rarity: 'SR', color: '#2196f3', spriteId: 'cat_3', price: 900, spawnInterval: 5, catBasePrice: 90 },
-    { level: 4, name: '咕咕窝', rarity: 'SSR', color: '#9c27b0', spriteId: 'cat_4', price: 2700, spawnInterval: 5, catBasePrice: 270 },
-    { level: 5, name: '呱呱窝', rarity: 'UR', color: '#ff9800', spriteId: 'cat_5', price: 8100, spawnInterval: 5, catBasePrice: 810 },
+    { level: 1, name: '喵喵窝', rarity: 'N', color: '#ffffff', spriteId: 'cat_1', price: 100, spawnInterval: 5, catBasePrice: 20 },
+    { level: 2, name: '旺旺窝', rarity: 'R', color: '#4caf50', spriteId: 'cat_2', price: 300, spawnInterval: 5, catBasePrice: 50 },
+    { level: 3, name: '哞哞窝', rarity: 'SR', color: '#2196f3', spriteId: 'cat_3', price: 900, spawnInterval: 5, catBasePrice: 100 },
+    { level: 4, name: '咕咕窝', rarity: 'SSR', color: '#9c27b0', spriteId: 'cat_4', price: 2700, spawnInterval: 5, catBasePrice: 300 },
+    { level: 5, name: '呱呱窝', rarity: 'UR', color: '#ff9800', spriteId: 'cat_5', price: 8100, spawnInterval: 5, catBasePrice: 800 },
   ],
   Conveyor: [
     { level: 1, name: '传送带', rarity: 'N', color: '#ffffff', spriteId: 'conveyor_1', price: 100, speed: 1.0 },
@@ -96,10 +96,11 @@ export const BUILDING_CONFIGS: BuildingConfigMap = {
     { level: 5, name: '宇宙箱', rarity: 'UR', color: '#ff9800', spriteId: 'box_5', price: 8100, capacity: 500 },
   ],
   MutationGate: [
+    /** 来自 data/door.csv */
     { level: 1, name: '充气门', rarity: 'N', color: '#ffffff', spriteId: 'door_2', price: 100, priceMultiplier: 1.5, description: '变大变大！', effect: '小猫变大10%，可叠加' },
-    { level: 2, name: '精舞门', rarity: 'R', color: '#4caf50', spriteId: 'door_3', price: 300, priceMultiplier: 2.0, description: 'Dancing！', effect: '小猫旋转速度增加50%，可叠加' },
+    { level: 2, name: '精舞门', rarity: 'R', color: '#4caf50', spriteId: 'door_3', price: 300, priceMultiplier: 2, description: 'Dancing！', effect: '小猫旋转速度增加50%，可叠加' },
     { level: 3, name: '颠倒门', rarity: 'SR', color: '#2196f3', spriteId: 'door_4', price: 900, priceMultiplier: 2.5, description: '脚就是头！', effect: '小猫上下翻转，可反复触发' },
-    { level: 4, name: '烧烤门', rarity: 'SSR', color: '#9c27b0', spriteId: 'door_1', price: 2700, priceMultiplier: 3.0, description: '着火啦！', effect: '小猫身上着火，可叠加火焰高度' },
+    { level: 4, name: '烧烤门', rarity: 'SSR', color: '#9c27b0', spriteId: 'door_1', price: 2700, priceMultiplier: 3, description: '着火啦！', effect: '小猫身上着火，可叠加火焰高度' },
   ],
 };
 
@@ -127,9 +128,12 @@ export function getBuildingConfigs<T extends BuildingType>(
   return BUILDING_CONFIGS[type] as BuildingConfigMap[T];
 }
 
-/** 获取猫窝的小猫基础价格 */
+/** 获取猫窝的小猫基础价格（来自 data/cat_house.csv） */
 export function getCatHouseBasePrice(level: number): number {
-  return tierExponentialPrice(CAT_SELL_PRICE_BASE, CAT_SELL_PRICE_RATIO, level);
+  return (
+    getBuildingConfig('CatNest', level)?.catBasePrice ??
+    tierExponentialPrice(CAT_SELL_PRICE_BASE, CAT_SELL_PRICE_RATIO, level)
+  );
 }
 
 /** 获取猫窝的产出间隔 */
@@ -157,7 +161,10 @@ export function getBuildingName(type: BuildingType, level: number): string {
   return getBuildingConfig(type, level)?.name ?? `${type} Lv.${level}`;
 }
 
-/** 获取建筑购买价格 */
-export function getBuildingPrice(_type: BuildingType, level: number): number {
-  return tierExponentialPrice(BUILDING_PRICE_BASE, BUILDING_PRICE_RATIO, level);
+/** 获取建筑购买价格（来自各建筑 CSV 的购买价格列） */
+export function getBuildingPrice(type: BuildingType, level: number): number {
+  return (
+    getBuildingConfig(type, level)?.price ??
+    tierExponentialPrice(BUILDING_PRICE_BASE, BUILDING_PRICE_RATIO, level)
+  );
 }

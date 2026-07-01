@@ -63,7 +63,7 @@ export const CAT_ARRIVE_EPSILON = 0.04;
 export const CAT_MUTATION_PULSE_DURATION = 0.35;
 /** 小猫经过变异门时的缩放峰值 */
 export const CAT_MUTATION_PULSE_PEAK_SCALE = 1.2;
-/** 精舞门基础翻转速度（弧度/秒），层数越高再 ×(1 + 0.5×stacks) */
+/** 精舞门基础翻转速度（弧度/秒）；实际转速 × getCatDanceSpeedMultiplier */
 export const CAT_DANCE_BASE_SPIN_SPEED = Math.PI * 2;
 
 /** 出售金币飞出动画：弹出阶段时长（秒） */
@@ -158,7 +158,9 @@ export const AUTO_SELL_INTERVAL = 10;
 /** 引导结束后首单延迟（秒） */
 export const ORDER_TUTORIAL_DELAY_SECONDS = 5;
 /** 订单完成后下一单延迟（秒） */
-export const ORDER_NEXT_DELAY_SECONDS = 10;
+export const ORDER_NEXT_DELAY_SECONDS = 2;
+/** 订单完成面板特效时长（秒） */
+export const ORDER_COMPLETE_FX_DURATION = 0.55;
 export const ORDER_INITIAL_QTY = 10;
 /** 重生后订单数量 = 重生次数 × 此值 */
 export const ORDER_QTY_PER_REBIRTH_LEVEL = 10;

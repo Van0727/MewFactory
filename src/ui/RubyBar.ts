@@ -35,6 +35,15 @@ export class RubyBar {
     this.valueEl.textContent = formatCompactNumber(this.ruby.getAmount());
   }
 
+  getFlyTarget(overlay: HTMLElement): { x: number; y: number } {
+    const overlayRect = overlay.getBoundingClientRect();
+    const barRect = this.container.getBoundingClientRect();
+    return {
+      x: barRect.left + barRect.width / 2 - overlayRect.left,
+      y: barRect.top + barRect.height / 2 - overlayRect.top,
+    };
+  }
+
   pulseReceive(): void {
     this.container.classList.remove('ruby-bar-receive');
     void this.container.offsetWidth;

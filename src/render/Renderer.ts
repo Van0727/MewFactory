@@ -50,6 +50,8 @@ export interface DrawState {
   getBoxCount: (gx: number, gy: number) => number;
   getBoxDrawScale: (gx: number, gy: number) => number;
   getNestSpawnCountdown: (gx: number, gy: number) => number | null;
+  /** 到店出售金币倍率（转生），用于小猫头顶标价 */
+  catGoldMultiplier?: number;
   tutorialHighlightCell?: { gx: number; gy: number } | null;
 }
 
@@ -224,7 +226,7 @@ export class Renderer {
       (a, b) => getCatSortY(a, this.origin) - getCatSortY(b, this.origin),
     );
     for (const cat of sortedCats) {
-      drawCat(this.ctx, cat, this.origin);
+      drawCat(this.ctx, cat, this.origin, state.catGoldMultiplier ?? 1);
     }
 
     this.drawPlayer(state.player, state.heldBuilding, state.heldCatCount);

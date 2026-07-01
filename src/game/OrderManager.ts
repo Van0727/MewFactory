@@ -2,7 +2,7 @@ import {
   ORDER_NEXT_DELAY_SECONDS,
   ORDER_TUTORIAL_DELAY_SECONDS,
 } from '../config';
-import { generateOrder, getOrderRubyReward, type Order, type OrderUnlockContext } from '../data/orders';
+import { generateFixedOrder, generateOrder, getOrderRubyReward, type Order, type OrderUnlockContext } from '../data/orders';
 
 export type OrderManagerListener = () => void;
 export type OrderUnlockContextProvider = () => OrderUnlockContext;
@@ -14,6 +14,7 @@ export class OrderManager {
   private delayRemaining = 0;
   private order: Order | null = null;
   private rebirthCount = 0;
+  private completedOrderCount = 0;
   private listener: OrderManagerListener | null = null;
   private unlockContextProvider: OrderUnlockContextProvider | null = null;
 
@@ -29,6 +30,7 @@ export class OrderManager {
     this.phase = 'idle';
     this.delayRemaining = 0;
     this.order = null;
+    this.completedOrderCount = 0;
     this.notify();
   }
 
@@ -57,7 +59,9 @@ export class OrderManager {
       ownedCatNestLevels: new Set([1]),
       ownedGateLevels: new Set<number>(),
     };
-    this.order = generateOrder(this.rebirthCount, unlock);
+    const fixed = generateFixedOrder(this.completedOrderCount, this.rebirthCount);
+    this.order =
+      fixed ?? generateOrder(this.rebirthCount, unlock);
     this.phase = 'active';
     this.delayRemaining = 0;
     this.notify();
@@ -99,6 +103,7 @@ export class OrderManager {
 
     const rubyReward = getOrderRubyReward(this.order);
     this.order = null;
+    this.completedOrderCount += 1;
     this.phase = 'waiting_next';
     this.delayRemaining = ORDER_NEXT_DELAY_SECONDS;
     this.notify();

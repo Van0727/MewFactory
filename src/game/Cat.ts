@@ -4,7 +4,7 @@ import {
 } from '../config';
 import { getDoorMultiplier } from '../data/buildings';
 
-/** 充气门：每经过一次体型与价格 +10%（线性叠加，非累乘） */
+/** 充气门：每层体型 +10%（1 + 0.1×N）；售价倍率见 data/door.csv */
 export const INFLATE_STACK_BONUS = 0.1;
 
 export interface CatMutationState {
@@ -90,10 +90,6 @@ export function resetCatIdCounter(): void {
   nextCatId = 1;
 }
 
-export function getCatPrice(cat: Cat): number {
-  return Math.round(cat.basePrice);
-}
-
 /** 缓动缩放：1 → peak → 1，正弦曲线 */
 export function getCatPulseScale(
   elapsed: number,
@@ -118,13 +114,16 @@ export function getCatInflateScale(mutations: CatMutationState): number {
   return 1 + INFLATE_STACK_BONUS * mutations.inflateStacks;
 }
 
-/** 按变异层数从 spawnBasePrice 重算售价 */
-export function recalculateCatBasePrice(cat: Cat): void {
-  const m = cat.mutations;
-  let price = cat.spawnBasePrice;
+/** 按变异层数从 spawnBasePrice 计算售价（与 data/door.csv 经过时价格倍率一致） */
+export function calculateCatSellPrice(
+  spawnBasePrice: number,
+  mutations: CatMutationState,
+): number {
+  let price = spawnBasePrice;
+  const m = mutations;
 
   if (m.inflateStacks > 0) {
-    price *= 1 + INFLATE_STACK_BONUS * m.inflateStacks;
+    price *= Math.pow(getDoorMultiplier(1), m.inflateStacks);
   }
   if (m.danceStacks > 0) {
     price *= Math.pow(getDoorMultiplier(2), m.danceStacks);
@@ -136,15 +135,29 @@ export function recalculateCatBasePrice(cat: Cat): void {
     price *= Math.pow(getDoorMultiplier(4), m.barbecueStacks);
   }
 
-  cat.basePrice = Math.round(price);
+  return Math.round(price);
 }
 
-/** 精舞门转速倍率：每经过一扇门翻倍（2^stacks） */
+/** 按变异层数从 spawnBasePrice 重算售价 */
+export function recalculateCatBasePrice(cat: Cat): void {
+  cat.basePrice = calculateCatSellPrice(cat.spawnBasePrice, cat.mutations);
+}
+
+export function getCatPrice(cat: Cat): number {
+  return calculateCatSellPrice(cat.spawnBasePrice, cat.mutations);
+}
+
+/** 到店出售时的实际金币（含转生倍率） */
+export function getCatGoldSellPrice(cat: Cat, goldMultiplier: number): number {
+  return Math.round(getCatPrice(cat) * goldMultiplier);
+}
+
+/** 精舞门转速倍率：1 + 门倍率 × 层数 */
 export function getCatDanceSpeedMultiplier(mutations: CatMutationState): number {
   if (mutations.danceStacks <= 0) {
     return 1;
   }
-  return Math.pow(2, mutations.danceStacks);
+  return 1 + getDoorMultiplier(2) * mutations.danceStacks;
 }
 
 /** 精舞门：沿竖直中轴线左右翻转（cos 在 1 ↔ -1 之间，非顺时针旋转） */

@@ -1,10 +1,10 @@
 import { getGoldSellCoinCount } from '../config';
-import type { MovementState } from '../input/InputManager';
 import { InputManager } from '../input/InputManager';
 import { Renderer } from '../render/Renderer';
 import { ActionButtons } from '../ui/ActionButtons';
 import { GoldBar } from '../ui/GoldBar';
 import { GoldSellFx } from '../ui/GoldSellFx';
+import { RubyRewardFx } from '../ui/RubyRewardFx';
 import { Hotbar } from '../ui/Hotbar';
 import { BuildingShopPanel } from '../ui/BuildingShopPanel';
 import { AttributeShopPanel } from '../ui/AttributeShopPanel';
@@ -30,7 +30,11 @@ import { seedRandomProductionLines, seedStarterPipeline } from './starterLayout'
 import { seedFixedShops } from './fixedShops';
 import { Grid } from './Grid';
 import { getPlayerCell } from './gridUtils';
-import { HeldCats } from './HeldCats';
+import {
+  HeldCats,
+  sumHeldCatEntriesCount,
+  sumHeldCatEntriesValue,
+} from './HeldCats';
 import { Inventory, PICKUP_SLOT_INDEX } from './Inventory';
 import { PlayerGold } from './PlayerGold';
 import { PlayerRuby } from './PlayerRuby';
@@ -70,6 +74,8 @@ export class Game {
   private goldBar: GoldBar;
   private rubyBar: RubyBar;
   private goldSellFx: GoldSellFx;
+  private rubyRewardFx: RubyRewardFx;
+  private uiOverlay: HTMLElement;
   private rebirthPanel: RebirthPanel;
   private rebirthToast: RebirthToast;
   private buildingShopPanel: BuildingShopPanel;
@@ -117,6 +123,7 @@ export class Game {
     }
     this.gameContainer = gameContainer as HTMLElement;
     this.gameContainer.classList.add('is-intro');
+    this.uiOverlay = uiOverlay;
 
     this.input = new InputManager();
     this.renderer = new Renderer(canvas);
@@ -126,6 +133,7 @@ export class Game {
     this.rubyBar = new RubyBar(rubyBarContainer, this.playerRuby);
     new GmGoldButton(gmGoldBtnContainer, () => this.addGmGold(10000));
     this.goldSellFx = new GoldSellFx(canvas, uiOverlay, this.goldBar);
+    this.rubyRewardFx = new RubyRewardFx(uiOverlay, this.rubyBar);
     this.rebirthToast = new RebirthToast(uiOverlay);
     this.rebirthPanel = new RebirthPanel(
       rebirthPanelContainer,
@@ -171,9 +179,10 @@ export class Game {
     this.autoSellOverlay = new AutoSellOverlay(uiOverlay);
     this.autoSell = new AutoSell({
       player: this.player,
-      grid: this.grid,
-      simulation: this.simulation,
+      getGrid: () => this.grid,
+      getSimulation: () => this.simulation,
       getMoveSpeed: () => this.characterState.getMoveSpeed(),
+      getHeldCatCount: () => this.heldCats.getCount(),
       collectFromBox: () => this.autoBagFromBoxUnderPlayer(),
       sellAllHeldCats: () => this.sellAllHeldCats(),
     });
@@ -198,6 +207,12 @@ export class Game {
     });
 
     this.input.setEnabled(false);
+
+    this.input.onMovementPress(() => {
+      if (this.autoSell.isEnabled()) {
+        this.stopAutoSell();
+      }
+    });
 
     this.input.onHotbarSelect((index) => {
       this.hotbar.select(index);
@@ -318,7 +333,7 @@ export class Game {
       this.introDemo.update(dt);
     } else {
       const movement = this.input.getMovement();
-      this.updateAutoSell(dt, movement);
+      this.updateAutoSell(dt);
       if (!this.autoSell.isControllingPlayer()) {
         this.player.update(
           dt,
@@ -340,6 +355,7 @@ export class Game {
     }
 
     this.goldSellFx.update(dt);
+    this.rubyRewardFx.update(dt);
     this.updateActionButtons();
 
     if (this.gamePhase === 'playing' && this.mode === 'place' && this.heldBuilding) {
@@ -386,6 +402,8 @@ export class Game {
       getBoxCount: (gx, gy) => this.simulation.getBoxCount(gx, gy),
       getBoxDrawScale: (gx, gy) => this.simulation.getBoxDrawScale(gx, gy),
       getNestSpawnCountdown: (gx, gy) => this.simulation.getNestSpawnCountdown(gx, gy),
+      catGoldMultiplier:
+        this.gamePhase === 'playing' ? this.rebirthState.getGoldMultiplier() : 1,
       tutorialHighlightCell: this.tutorial.isActive()
         ? this.tutorial.getHighlightCell()
         : null,
@@ -512,6 +530,10 @@ export class Game {
   }
 
   private syncOrderPanel(): void {
+    if (this.orderPanel.isCompleteFxActive()) {
+      return;
+    }
+
     if (this.tutorial.isActive()) {
       this.orderPanel.hide();
       return;
@@ -626,6 +648,7 @@ export class Game {
     }
     this.autoSell.start();
     this.autoSellOverlay.show();
+    this.autoSell.update(1 / 60);
   }
 
   private stopAutoSell(): void {
@@ -633,19 +656,11 @@ export class Game {
     this.autoSellOverlay.hide();
   }
 
-  private updateAutoSell(dt: number, movement: MovementState): void {
+  private updateAutoSell(dt: number): void {
     if (!this.autoSell.isEnabled()) {
       return;
     }
-    if (this.hasMovementInput(movement)) {
-      this.stopAutoSell();
-      return;
-    }
     this.autoSell.update(dt);
-  }
-
-  private hasMovementInput(movement: MovementState): boolean {
-    return movement.up || movement.down || movement.left || movement.right;
   }
 
   private previewAutoBuild(): { canProceed: boolean; message: string } {
@@ -719,6 +734,9 @@ export class Game {
   }
 
   private sellAllHeldCats(): void {
+    let orderSoldCount = 0;
+    let orderSoldValue = 0;
+
     const activeOrder = this.orderManager.getOrder();
     if (activeOrder && this.orderManager.hasActiveOrder()) {
       const needed = this.orderManager.getRemainingNeeded();
@@ -727,22 +745,35 @@ export class Game {
         needed,
       );
       if (taken.length > 0) {
-        const { rubyReward } = this.orderManager.deliver(taken.length);
+        orderSoldCount = sumHeldCatEntriesCount(taken);
+        orderSoldValue = sumHeldCatEntriesValue(taken);
+        const orderSnapshot = { ...activeOrder };
+        const { rubyReward } = this.orderManager.deliver(orderSoldCount);
         if (rubyReward > 0) {
-          this.playerRuby.add(rubyReward);
-          this.rubyBar.refresh();
-          this.rubyBar.pulseReceive();
+          const completedOrder = {
+            ...orderSnapshot,
+            delivered: orderSnapshot.quantity,
+          };
+          this.orderPanel.playCompleteEffect(completedOrder, () => {
+            const source = this.orderPanel.getFlySource(this.uiOverlay);
+            this.rubyRewardFx.play(source.x, source.y, rubyReward, () => {
+              this.playerRuby.add(rubyReward);
+              this.rubyBar.refresh();
+              this.rubyBar.pulseReceive();
+            });
+          });
         }
-        this.syncOrderPanel();
       }
     }
 
     const { count, value } = this.heldCats.takeAll();
-    if (count <= 0) {
+    const totalCount = count + orderSoldCount;
+    const totalValue = value + orderSoldValue;
+    if (totalCount <= 0) {
       return;
     }
     const amount = Math.round(
-      value * this.rebirthState.getGoldMultiplier(),
+      totalValue * this.rebirthState.getGoldMultiplier(),
     );
     const { gx, gy } = getPlayerCell(this.player);
     this.hotbar.refresh();
@@ -753,7 +784,7 @@ export class Game {
       this.goldBar.pulseReceive();
       this.rebirthPanel.refresh();
       this.refreshShopPanels();
-    }, getGoldSellCoinCount(count));
+    }, getGoldSellCoinCount(totalCount));
     this.tutorial.onCatsSold();
     this.syncTutorialPanel();
   }

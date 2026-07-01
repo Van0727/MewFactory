@@ -1,8 +1,8 @@
 import type { Cat } from '../game/Cat';
 import {
   getCatDanceScaleX,
+  getCatGoldSellPrice,
   getCatInflateScale,
-  getCatPrice,
   getCatPulseScale,
 } from '../game/Cat';
 import {
@@ -23,6 +23,7 @@ export function drawCat(
   ctx: CanvasRenderingContext2D,
   cat: Cat,
   origin: IsoOrigin,
+  goldMultiplier = 1,
 ): void {
   const gx = cat.x - 0.5;
   const gy = cat.y - 0.5;
@@ -42,7 +43,7 @@ export function drawCat(
     scaleX: getCatDanceScaleX(cat.mutations),
     flipVertical: cat.mutations.flipCount % 2 === 1,
   });
-  drawCatPriceLabel(ctx, gx, gy, cat, pulseScale, origin);
+  drawCatPriceLabel(ctx, gx, gy, cat, pulseScale, origin, goldMultiplier);
 }
 
 function drawCatPriceLabel(
@@ -52,11 +53,12 @@ function drawCatPriceLabel(
   cat: Cat,
   pulseScale: number,
   origin: IsoOrigin,
+  goldMultiplier: number,
 ): void {
   const { cx, cy } = getGridCellAnchor(gx, gy, origin);
   const fontSize = scaleCanvasUi(13, origin.viewScale);
   const labelY = cy - fontSize * 1.5;
-  const text = formatCompactNumber(getCatPrice(cat));
+  const text = formatCompactNumber(getCatGoldSellPrice(cat, goldMultiplier));
   const fillStyle =
     cat.mutations.barbecueStacks > 0 ? '#ffb4b4' : '#fff';
 

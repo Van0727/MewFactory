@@ -1,3 +1,6 @@
+import { calculateCatSellPrice, type CatMutationState } from './Cat';
+import { getCatHouseBasePrice } from '../data/buildings';
+
 export interface HeldCatDisplayState {
   nestLevel: number;
   inflateStacks: number;
@@ -9,6 +12,8 @@ export interface HeldCatDisplayState {
 export interface HeldCatEntry {
   nestLevel: number;
   value: number;
+  /** 产出时小猫基础价，用于按变异重算售价 */
+  spawnBasePrice?: number;
   /** 包装箱内相同形态猫堆叠数量 */
   count?: number;
   display?: HeldCatDisplayState;
@@ -53,6 +58,10 @@ export function getHeldCatEntryCount(entry: HeldCatEntry): number {
   return entry.count ?? 1;
 }
 
+export function sumHeldCatEntriesCount(entries: readonly HeldCatEntry[]): number {
+  return entries.reduce((sum, entry) => sum + getHeldCatEntryCount(entry), 0);
+}
+
 export function getHeldCatDisplayState(entry: HeldCatEntry): HeldCatDisplayState {
   return entry.display ?? {
     nestLevel: entry.nestLevel,
@@ -61,6 +70,31 @@ export function getHeldCatDisplayState(entry: HeldCatEntry): HeldCatDisplayState
     barbecueStacks: 0,
     flipCount: 0,
   };
+}
+
+function heldCatEntryMutations(entry: HeldCatEntry): CatMutationState {
+  const display = getHeldCatDisplayState(entry);
+  return {
+    inflateStacks: display.inflateStacks,
+    danceStacks: display.danceStacks,
+    barbecueStacks: display.barbecueStacks,
+    flipCount: display.flipCount,
+    danceAngle: 0,
+  };
+}
+
+/** 单只手持/箱内猫的售价（不含转生倍率） */
+export function getHeldCatSellPrice(entry: HeldCatEntry): number {
+  const spawnBase =
+    entry.spawnBasePrice ?? getCatHouseBasePrice(entry.nestLevel);
+  return calculateCatSellPrice(spawnBase, heldCatEntryMutations(entry));
+}
+
+export function sumHeldCatEntriesValue(entries: readonly HeldCatEntry[]): number {
+  return entries.reduce(
+    (sum, entry) => sum + getHeldCatSellPrice(entry) * getHeldCatEntryCount(entry),
+    0,
+  );
 }
 
 /** 玩家手里的小猫，受举起数量属性限制单次拿取上限。 */
@@ -77,18 +111,21 @@ export class HeldCats {
   }
 
   getCount(): number {
-    return this.stack.length;
+    return this.stack.reduce((sum, entry) => sum + getHeldCatEntryCount(entry), 0);
   }
 
   getRemainingSpace(): number {
     if (!Number.isFinite(this.maxCount)) {
       return Number.POSITIVE_INFINITY;
     }
-    return Math.max(0, this.maxCount - this.stack.length);
+    return Math.max(0, this.maxCount - this.getCount());
   }
 
   getTotalValue(): number {
-    return this.stack.reduce((sum, entry) => sum + entry.value, 0);
+    return this.stack.reduce(
+      (sum, entry) => sum + getHeldCatSellPrice(entry) * getHeldCatEntryCount(entry),
+      0,
+    );
   }
 
   getStack(): readonly HeldCatEntry[] {
@@ -100,7 +137,7 @@ export class HeldCats {
   }
 
   takeAll(): { count: number; value: number } {
-    const count = this.stack.length;
+    const count = this.getCount();
     const value = this.getTotalValue();
     this.stack = [];
     return { count, value };
@@ -115,18 +152,38 @@ export class HeldCats {
     }
 
     const taken: HeldCatEntry[] = [];
-    const keep: HeldCatEntry[] = [];
+    let remaining = maxCount;
 
-    for (let i = this.stack.length - 1; i >= 0; i--) {
+    for (let i = this.stack.length - 1; i >= 0 && remaining > 0; i--) {
       const entry = this.stack[i];
-      if (taken.length < maxCount && predicate(entry)) {
-        taken.push(entry);
-      } else {
-        keep.push(entry);
+      if (!predicate(entry)) {
+        continue;
       }
+
+      const entryCount = getHeldCatEntryCount(entry);
+      const takeCount = Math.min(remaining, entryCount);
+
+      if (takeCount === entryCount) {
+        taken.push(entry);
+        this.stack.splice(i, 1);
+      } else {
+        const unitPrice = getHeldCatSellPrice(entry);
+        const display = entry.display ? { ...entry.display } : undefined;
+        entry.count = entryCount - takeCount;
+        entry.value = unitPrice * entry.count;
+
+        for (let j = 0; j < takeCount; j++) {
+          taken.push({
+            nestLevel: entry.nestLevel,
+            value: unitPrice,
+            spawnBasePrice: entry.spawnBasePrice,
+            display,
+          });
+        }
+      }
+      remaining -= takeCount;
     }
 
-    this.stack = keep.reverse();
     return taken;
   }
 

@@ -273,6 +273,8 @@ body {
   flex-direction: row;
   align-items: flex-end;
   gap: 0.9cqmin;
+  transform: scale(0.8);
+  transform-origin: bottom right;
 }
 
 .factory-action-btn {
@@ -508,6 +510,37 @@ body {
   background-repeat: no-repeat;
   background-position: center;
   filter: drop-shadow(0 0 0.6cqmin rgba(255, 215, 0, 0.75));
+  will-change: transform, left, top, opacity;
+}
+
+.ruby-reward-fx-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 26;
+}
+
+.ruby-reward-label {
+  position: absolute;
+  font-weight: bold;
+  font-size: 4.5cqmin;
+  color: #ff6b8a;
+  text-shadow:
+    0 0 1cqmin rgba(255, 80, 120, 0.9),
+    0 0.2cqmin 0.4cqmin rgba(0, 0, 0, 0.85);
+  white-space: nowrap;
+  will-change: transform, left, top, opacity;
+}
+
+.ruby-reward-gem {
+  position: absolute;
+  width: 2.8cqmin;
+  height: 2.8cqmin;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  filter: drop-shadow(0 0 0.6cqmin rgba(255, 60, 100, 0.75));
   will-change: transform, left, top, opacity;
 }
 
@@ -808,8 +841,36 @@ body {
   animation: tutorial-pop 0.28s ease-out;
 }
 
+.order-panel-root.is-complete .tutorial-panel__frame {
+  animation: order-complete-pop 0.55s ease-out;
+}
+
+.order-panel-root.is-complete .order-panel__progress {
+  color: #7dff9a;
+}
+
+@keyframes order-complete-pop {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  35% {
+    transform: scale(1.08);
+    filter: brightness(1.25);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
 .order-panel__quantity-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.2cqmin;
   margin: 0 0 0.5cqmin 0.9cqmin;
+  padding-right: 0.6cqmin;
   font-size: 2.9cqmin;
   font-weight: 900;
   line-height: 1;
@@ -821,6 +882,18 @@ body {
     -0.12cqmin 0.12cqmin 0 var(--tutorial-brown-dark),
     0.12cqmin -0.12cqmin 0 var(--tutorial-brown-dark),
     -0.12cqmin -0.12cqmin 0 var(--tutorial-brown-dark);
+}
+
+.order-panel__title {
+  flex: 0 0 auto;
+  color: #fff;
+}
+
+.order-panel__progress {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--color-accent-yellow);
+  font-variant-numeric: tabular-nums;
 }
 
 .order-panel.tutorial-panel {
@@ -1116,12 +1189,23 @@ body {
 }
 
 .attribute-shop-price {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35cqmin;
   font-size: 2cqmin;
   color: #f0c040;
   font-weight: bold;
   white-space: nowrap;
   text-align: right;
   justify-self: stretch;
+}
+
+.attribute-shop-price-ruby {
+  width: 2.2cqmin;
+  height: 2.2cqmin;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .attribute-shop-upgrade,

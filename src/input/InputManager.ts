@@ -34,6 +34,7 @@ export class InputManager {
 
   private hotbarListeners: Array<(index: number) => void> = [];
   private actionKeyListeners: Array<(key: ActionKey) => void> = [];
+  private movementPressListeners: Array<() => void> = [];
 
   constructor() {
     window.addEventListener('keydown', this.onKeyDown);
@@ -65,6 +66,34 @@ export class InputManager {
 
   onActionKey(listener: (key: ActionKey) => void): void {
     this.actionKeyListeners.push(listener);
+  }
+
+  /** 按下方向键时（非长按重复） */
+  onMovementPress(listener: () => void): void {
+    this.movementPressListeners.push(listener);
+  }
+
+  private notifyMovementPress(): void {
+    for (const listener of this.movementPressListeners) {
+      listener();
+    }
+  }
+
+  private setMovementAxis(
+    axis: keyof MovementState,
+    active: boolean,
+    notifyPress: boolean,
+  ): void {
+    if (active) {
+      if (!this.movement[axis]) {
+        this.movement[axis] = true;
+        if (notifyPress) {
+          this.notifyMovementPress();
+        }
+      }
+      return;
+    }
+    this.movement[axis] = false;
   }
 
   getMovement(): MovementState {
@@ -102,19 +131,19 @@ export class InputManager {
     switch (key) {
       case 'w':
       case 'arrowup':
-        this.movement.up = true;
+        this.setMovementAxis('up', true, !e.repeat);
         break;
       case 's':
       case 'arrowdown':
-        this.movement.down = true;
+        this.setMovementAxis('down', true, !e.repeat);
         break;
       case 'a':
       case 'arrowleft':
-        this.movement.left = true;
+        this.setMovementAxis('left', true, !e.repeat);
         break;
       case 'd':
       case 'arrowright':
-        this.movement.right = true;
+        this.setMovementAxis('right', true, !e.repeat);
         break;
     }
   };
@@ -128,19 +157,19 @@ export class InputManager {
     switch (key) {
       case 'w':
       case 'arrowup':
-        this.movement.up = false;
+        this.setMovementAxis('up', false, false);
         break;
       case 's':
       case 'arrowdown':
-        this.movement.down = false;
+        this.setMovementAxis('down', false, false);
         break;
       case 'a':
       case 'arrowleft':
-        this.movement.left = false;
+        this.setMovementAxis('left', false, false);
         break;
       case 'd':
       case 'arrowright':
-        this.movement.right = false;
+        this.setMovementAxis('right', false, false);
         break;
     }
   };

@@ -19,31 +19,31 @@ export const CHARACTER_ATTRIBUTE_LABELS: Record<CharacterAttributeId, string> = 
   strength: '举起数量',
 };
 
-/** 属性等级配置（与 charatcer.csv 同步） */
+/** 属性等级配置（与 data/charatcer.csv 同步） */
 export const CHARACTER_CONFIGS: Record<CharacterAttributeId, CharacterLevelConfig[]> = {
   moveSpeed: [
-    { level: 1, value: 100, price: 100 },
-    { level: 2, value: 120, price: 200 },
-    { level: 3, value: 140, price: 300 },
-    { level: 4, value: 160, price: 400 },
-    { level: 5, value: 180, price: 500 },
-    { level: 6, value: 200, price: 600 },
-    { level: 7, value: 220, price: 700 },
-    { level: 8, value: 240, price: 800 },
-    { level: 9, value: 260, price: 900 },
-    { level: 10, value: 300, price: 1000 },
+    { level: 1, value: 100, price: 10 },
+    { level: 2, value: 120, price: 10 },
+    { level: 3, value: 140, price: 20 },
+    { level: 4, value: 160, price: 30 },
+    { level: 5, value: 180, price: 40 },
+    { level: 6, value: 200, price: 50 },
+    { level: 7, value: 220, price: 60 },
+    { level: 8, value: 240, price: 70 },
+    { level: 9, value: 260, price: 80 },
+    { level: 10, value: 300, price: 100 },
   ],
   strength: [
-    { level: 1, value: 10, price: 100 },
-    { level: 2, value: 20, price: 200 },
-    { level: 3, value: 30, price: 300 },
-    { level: 4, value: 50, price: 400 },
-    { level: 5, value: 80, price: 500 },
-    { level: 6, value: 120, price: 600 },
-    { level: 7, value: 180, price: 700 },
-    { level: 8, value: 250, price: 800 },
-    { level: 9, value: 400, price: 900 },
-    { level: 10, value: 800, price: 1000 },
+    { level: 1, value: 10, price: 10 },
+    { level: 2, value: 20, price: 10 },
+    { level: 3, value: 30, price: 20 },
+    { level: 4, value: 50, price: 30 },
+    { level: 5, value: 80, price: 40 },
+    { level: 6, value: 120, price: 50 },
+    { level: 7, value: 180, price: 60 },
+    { level: 8, value: 250, price: 70 },
+    { level: 9, value: 400, price: 80 },
+    { level: 10, value: 800, price: 100 },
   ],
 };
 

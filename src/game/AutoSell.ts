@@ -7,11 +7,18 @@ import type { Simulation } from './Simulation';
 
 type AutoSellPhase = 'idle' | 'collecting' | 'selling';
 
+interface BoxTarget {
+  gx: number;
+  gy: number;
+  catCount: number;
+}
+
 export interface AutoSellDeps {
   player: Player;
-  grid: Grid;
-  simulation: Simulation;
+  getGrid: () => Grid;
+  getSimulation: () => Simulation;
   getMoveSpeed: () => number;
+  getHeldCatCount: () => number;
   collectFromBox: () => void;
   sellAllHeldCats: () => void;
 }
@@ -21,7 +28,7 @@ export class AutoSell {
   private enabled = false;
   private phase: AutoSellPhase = 'idle';
   private intervalElapsed = 0;
-  private boxQueue: Array<{ gx: number; gy: number }> = [];
+  private boxQueue: BoxTarget[] = [];
   private currentTarget: { x: number; y: number } | null = null;
   private deps: AutoSellDeps;
 
@@ -41,7 +48,7 @@ export class AutoSell {
   start(): void {
     this.enabled = true;
     this.intervalElapsed = 0;
-    this.replanAndBeginCollecting();
+    this.beginCollecting();
   }
 
   stop(): void {
@@ -57,39 +64,69 @@ export class AutoSell {
       return;
     }
 
+    const step = Math.max(dt, 1 / 120);
+
     if (this.phase === 'idle') {
-      this.intervalElapsed += dt;
+      this.intervalElapsed += step;
       if (this.intervalElapsed >= AUTO_SELL_INTERVAL) {
         this.intervalElapsed = 0;
-        this.replanAndBeginCollecting();
+        this.beginCollecting();
       }
       return;
     }
 
     if (this.phase === 'collecting') {
-      this.updateCollecting(dt);
+      this.updateCollecting(step);
+      if (this.phase !== 'collecting') {
+        this.updateSelling(step);
+      }
       return;
     }
 
-    this.updateSelling(dt);
+    this.updateSelling(step);
   }
 
-  private replanAndBeginCollecting(): void {
-    const { player, grid } = this.deps;
-    const boxes: Array<{ gx: number; gy: number }> = [];
+  private beginCollecting(): void {
+    const { player, getGrid, getSimulation, getHeldCatCount } = this.deps;
+    const grid = getGrid();
+    const simulation = getSimulation();
+    const boxes: BoxTarget[] = [];
 
     grid.forEachBuilding((gx, gy, building) => {
       if (building.type === BuildingType.PackingBox) {
-        boxes.push({ gx, gy });
+        boxes.push({
+          gx,
+          gy,
+          catCount: simulation.getBoxCount(gx, gy),
+        });
       }
     });
+
+    const withCats = boxes.filter((box) => box.catCount > 0);
+    if (withCats.length > 0) {
+      withCats.sort((a, b) => {
+        const da = Math.hypot(a.gx + 0.5 - player.x, a.gy + 0.5 - player.y);
+        const db = Math.hypot(b.gx + 0.5 - player.x, b.gy + 0.5 - player.y);
+        return da - db;
+      });
+      this.boxQueue = withCats;
+      this.phase = 'collecting';
+      this.advanceToNextBox();
+      return;
+    }
+
+    if (getHeldCatCount() > 0 || boxes.length === 0) {
+      this.boxQueue = [];
+      this.phase = 'selling';
+      this.currentTarget = null;
+      return;
+    }
 
     boxes.sort((a, b) => {
       const da = Math.hypot(a.gx + 0.5 - player.x, a.gy + 0.5 - player.y);
       const db = Math.hypot(b.gx + 0.5 - player.x, b.gy + 0.5 - player.y);
       return da - db;
     });
-
     this.boxQueue = boxes;
     this.phase = 'collecting';
     this.advanceToNextBox();
@@ -132,6 +169,7 @@ export class AutoSell {
       this.deps.sellAllHeldCats();
       this.phase = 'idle';
       this.currentTarget = null;
+      this.intervalElapsed = 0;
     }
   }
 }

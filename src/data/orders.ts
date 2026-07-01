@@ -47,6 +47,38 @@ const GATE_REQUIREMENT_LABELS: Record<OrderGateLevel, string> = {
 
 const ORDER_PURCHASED_WEIGHT = 0.8;
 
+/** 前 3 单固定需求；第 3 单「1 级狗」= 2 级猫窝（旺旺窝） */
+const FIXED_ORDER_SPECS: ReadonlyArray<{
+  nestLevel: number;
+  gateLevel: OrderGateLevel;
+  minPasses: number;
+  quantity: number;
+}> = [
+  { nestLevel: 1, gateLevel: 1, minPasses: 1, quantity: 5 },
+  { nestLevel: 1, gateLevel: 2, minPasses: 1, quantity: 5 },
+  { nestLevel: 2, gateLevel: 2, minPasses: 1, quantity: 5 },
+];
+
+export const FIXED_ORDER_COUNT = FIXED_ORDER_SPECS.length;
+
+export function generateFixedOrder(
+  index: number,
+  rebirthCount: number,
+): Order | null {
+  const spec = FIXED_ORDER_SPECS[index];
+  if (!spec) {
+    return null;
+  }
+  return {
+    nestLevel: spec.nestLevel,
+    quantity: spec.quantity,
+    gateLevel: spec.gateLevel,
+    minPasses: spec.minPasses,
+    rubyPerCat: ORDER_RUBY_PER_CAT + rebirthCount * ORDER_RUBY_PER_REBIRTH,
+    delivered: 0,
+  };
+}
+
 export function getGateStacks(
   display: HeldCatDisplayState,
   gateLevel: OrderGateLevel,
