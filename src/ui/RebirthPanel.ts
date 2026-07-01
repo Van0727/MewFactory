@@ -1,4 +1,5 @@
 import type { PlayerGold } from '../game/PlayerGold';
+import { formatCompactNumber } from '../config';
 import { formatGoldMultiplier, type RebirthState } from '../game/RebirthState';
 
 export class RebirthPanel {
@@ -57,7 +58,7 @@ export class RebirthPanel {
     const next = this.rebirthState.getNextGoldMultiplier();
     const canAfford = this.playerGold.getAmount() >= cost;
 
-    this.priceEl.textContent = `价格：${cost}`;
+    this.priceEl.textContent = `价格：${formatCompactNumber(cost)}`;
     this.multiplierEl.textContent = `倍率：${formatGoldMultiplier(current)} → ${formatGoldMultiplier(next)}`;
     this.rebirthBtn.disabled = !canAfford;
     this.rebirthBtn.classList.toggle('is-affordable', canAfford);

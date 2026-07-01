@@ -1,3 +1,4 @@
+import { formatCompactNumber } from '../config';
 import type { PlayerGold } from '../game/PlayerGold';
 
 import { getGoldChickUrl } from '../render/assets';
@@ -32,7 +33,7 @@ export class GoldBar {
   }
 
   refresh(): void {
-    this.valueEl.textContent = String(this.gold.getAmount());
+    this.valueEl.textContent = formatCompactNumber(this.gold.getAmount());
   }
 
   /** ui-overlay 坐标系下的回收目标点 */

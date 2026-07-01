@@ -10,11 +10,16 @@ import {
   getCatHouseSpawnInterval,
   getCatBoxCapacity,
   getConveyorSpeed,
-  getDoorMultiplier,
 } from '../data/buildings';
 import { BuildingType, Direction, type Building } from './Building';
-import { createCat, getBoxCenter, getCatCell, getCatDanceSpeedMultiplier, type Cat } from './Cat';
-import type { HeldCatEntry, HeldCatDisplayState } from './HeldCats';
+import { createCat, getBoxCenter, getCatCell, getCatDanceSpeedMultiplier, recalculateCatBasePrice, type Cat } from './Cat';
+import type { HeldCatEntry } from './HeldCats';
+import {
+  getHeldCatDisplayState,
+  getHeldCatEntryCount,
+  heldCatDisplayFromCat,
+  heldCatDisplaysEqual,
+} from './HeldCats';
 import {
   ALL_DIRECTIONS,
   getNeighbor,
@@ -36,10 +41,8 @@ export class Simulation {
   private boxCounts: number[][];
   /** 每格包装箱累计的小猫总价值 */
   private boxValues: number[][];
-  /** 每格包装箱内每只猫的品种与价值 */
+  /** 每格包装箱内按形态堆叠的小猫 */
   private boxCatStacks: HeldCatEntry[][][];
-  /** 每格包装箱首只进入猫的形态基准（箱清空后下一只重新设定） */
-  private boxDisplayBaselines: (HeldCatDisplayState | null)[][];
   private boxPulseElapsed = new Map<string, number>();
   private nestSpawnTimers = new Map<string, number>();
   private grid: Grid;
@@ -55,9 +58,50 @@ export class Simulation {
     this.boxCatStacks = Array.from({ length: GRID_SIZE }, () =>
       Array.from({ length: GRID_SIZE }, () => [] as HeldCatEntry[]),
     );
-    this.boxDisplayBaselines = Array.from({ length: GRID_SIZE }, () =>
-      Array.from({ length: GRID_SIZE }, () => null as HeldCatDisplayState | null),
+  }
+
+  private syncBoxCount(gx: number, gy: number): void {
+    const stack = this.boxCatStacks[gy][gx];
+    this.boxCounts[gy][gx] = stack.reduce(
+      (sum, entry) => sum + getHeldCatEntryCount(entry),
+      0,
     );
+  }
+
+  private takeFromBoxStack(
+    stack: HeldCatEntry[],
+    limit: number,
+  ): { taken: HeldCatEntry[]; value: number } {
+    const taken: HeldCatEntry[] = [];
+    let value = 0;
+    let remaining = limit;
+
+    while (remaining > 0 && stack.length > 0) {
+      const top = stack[stack.length - 1];
+      const topCount = getHeldCatEntryCount(top);
+      const takeCount = Math.min(remaining, topCount);
+      const unitValue = top.value / topCount;
+      const display = top.display ? { ...top.display } : undefined;
+
+      if (takeCount === topCount) {
+        stack.pop();
+      } else {
+        top.count = topCount - takeCount;
+        top.value = unitValue * top.count;
+      }
+
+      for (let i = 0; i < takeCount; i++) {
+        taken.push({
+          nestLevel: top.nestLevel,
+          value: unitValue,
+          display,
+        });
+        value += unitValue;
+      }
+      remaining -= takeCount;
+    }
+
+    return { taken, value };
   }
 
   update(dt: number): void {
@@ -81,7 +125,6 @@ export class Simulation {
         this.boxCounts[gy][gx] = 0;
         this.boxValues[gy][gx] = 0;
         this.boxCatStacks[gy][gx] = [];
-        this.boxDisplayBaselines[gy][gx] = null;
       }
     }
   }
@@ -136,31 +179,14 @@ export class Simulation {
       return { entries: [], count: 0, value: 0 };
     }
 
-    const takeCount = Math.min(limit, entries.length);
-    const baseline = this.boxDisplayBaselines[gy][gx] ?? {
-      nestLevel: entries[0].nestLevel,
-      inflateStacks: 0,
-      barbecueStacks: 0,
-      flipCount: 0,
-    };
-    const takenRaw = entries.slice(entries.length - takeCount);
-    const takenValue = takenRaw.reduce((sum, entry) => sum + entry.value, 0);
-    const entriesWithDisplay = takenRaw.map((entry) => ({
-      ...entry,
-      display: { ...baseline },
-    }));
-
-    this.boxCatStacks[gy][gx] = entries.slice(0, entries.length - takeCount);
-    this.boxCounts[gy][gx] = this.boxCatStacks[gy][gx].length;
-    this.boxValues[gy][gx] -= takenValue;
-    if (this.boxCounts[gy][gx] <= 0) {
-      this.boxDisplayBaselines[gy][gx] = null;
-    }
+    const { taken, value } = this.takeFromBoxStack(entries, limit);
+    this.syncBoxCount(gx, gy);
+    this.boxValues[gy][gx] -= value;
 
     return {
-      entries: entriesWithDisplay,
-      count: takeCount,
-      value: takenValue,
+      entries: taken,
+      count: taken.length,
+      value,
     };
   }
 
@@ -188,7 +214,6 @@ export class Simulation {
       this.boxCounts[gy][gx] = 0;
       this.boxValues[gy][gx] = 0;
       this.boxCatStacks[gy][gx] = [];
-      this.boxDisplayBaselines[gy][gx] = null;
     }
     if (building.type === BuildingType.CatNest) {
       const key = this.cellKey(gx, gy);
@@ -206,7 +231,6 @@ export class Simulation {
     this.boxCounts[gy][gx] = 0;
     this.boxValues[gy][gx] = 0;
     this.boxCatStacks[gy][gx] = [];
-    this.boxDisplayBaselines[gy][gx] = null;
     this.nestSpawnTimers.delete(this.cellKey(gx, gy));
     this.boxPulseElapsed.delete(this.cellKey(gx, gy));
   }
@@ -269,8 +293,6 @@ export class Simulation {
       return;
     }
 
-    const multiplier = getDoorMultiplier(gate.level);
-    cat.basePrice = Math.round(cat.basePrice * multiplier);
     cat.pulseAnim = { elapsed: 0 };
 
     switch (gate.level) {
@@ -289,6 +311,8 @@ export class Simulation {
       default:
         break;
     }
+
+    recalculateCatBasePrice(cat);
   }
 
   private updateCatMutations(dt: number): void {
@@ -340,23 +364,30 @@ export class Simulation {
     this.triggerBoxPulse(boxGx, boxGy);
 
     const capacity = getCatBoxCapacity(building.level);
-    const wasEmpty = this.boxCounts[boxGy][boxGx] === 0;
-    if (this.boxCounts[boxGy][boxGx] < capacity) {
-      if (wasEmpty) {
-        this.boxDisplayBaselines[boxGy][boxGx] = {
-          nestLevel: cat.nestLevel,
-          inflateStacks: cat.mutations.inflateStacks,
-          barbecueStacks: cat.mutations.barbecueStacks,
-          flipCount: cat.mutations.flipCount,
-        };
-      }
-      this.boxCounts[boxGy][boxGx]++;
-      this.boxValues[boxGy][boxGx] += cat.basePrice;
-      this.boxCatStacks[boxGy][boxGx].push({
+    if (this.boxCounts[boxGy][boxGx] >= capacity) {
+      return;
+    }
+
+    const display = heldCatDisplayFromCat(cat);
+    const stack = this.boxCatStacks[boxGy][boxGx];
+    const existing = stack.find((entry) =>
+      heldCatDisplaysEqual(getHeldCatDisplayState(entry), display),
+    );
+
+    if (existing) {
+      existing.count = getHeldCatEntryCount(existing) + 1;
+      existing.value += cat.basePrice;
+    } else {
+      stack.push({
         nestLevel: cat.nestLevel,
         value: cat.basePrice,
+        count: 1,
+        display,
       });
     }
+
+    this.syncBoxCount(boxGx, boxGy);
+    this.boxValues[boxGy][boxGx] += cat.basePrice;
   }
 
   private updateCatNests(dt: number): void {

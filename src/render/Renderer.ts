@@ -32,6 +32,7 @@ import {
   getTileTopCorners,
   type IsoOrigin,
 } from './isometric';
+import { getGridCellAnchor } from './tileBounds';
 import {
   configureSpriteSmoothing,
   drawSpriteInIsoTile,
@@ -112,6 +113,16 @@ export class Renderer {
     this.ctx.fillRect(0, 0, rect.width, rect.height);
 
     this.drawBoard(state);
+  }
+
+  getPlayerClientPosition(player: Player): { x: number; y: number } {
+    const rect = this.canvas.getBoundingClientRect();
+    const { gx, gy } = getPlayerFeetGridPos(player);
+    const { cx, cy } = getGridCellAnchor(gx, gy, this.origin);
+    return {
+      x: rect.left + cx,
+      y: rect.top + cy,
+    };
   }
 
   private drawBoard(state: DrawState): void {

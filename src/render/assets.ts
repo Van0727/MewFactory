@@ -22,7 +22,8 @@ export type BaseAssetKey =
   | 'catMutated'
   | 'player'
   | 'uiPickup'
-  | 'goldChick';
+  | 'goldChick'
+  | 'ruby';
 
 const BASE_ASSET_PATHS: Record<BaseAssetKey, string> = {
   tileLight: 'assets/tiles/tile_light.png',
@@ -32,6 +33,7 @@ const BASE_ASSET_PATHS: Record<BaseAssetKey, string> = {
   player: 'assets/buildings/player.png',
   uiPickup: 'assets/ui/pickup.png',
   goldChick: 'assets/ui/gold_chick.png',
+  ruby: 'assets/ui/ruby.svg',
 };
 
 export const ROLE_SPRITE_IDS = ['role_1', 'role_2', 'role_3', 'role_4', 'role_5'] as const;
@@ -183,6 +185,10 @@ export function getUiPickupUrl(): string {
 
 export function getGoldChickUrl(): string {
   return assetUrl(BASE_ASSET_PATHS.goldChick);
+}
+
+export function getRubyUrl(): string {
+  return assetUrl(BASE_ASSET_PATHS.ruby);
 }
 
 export function getCatSpriteUrl(): string {

@@ -1,5 +1,4 @@
 import { GRID_SIZE } from '../config';
-import { BUILDING_MAX_LEVEL } from '../data/buildings';
 import {
   BuildingType,
   createBuilding,
@@ -25,8 +24,38 @@ const STARTER_NEST_USER_CELL = { x: 2, y: 5 };
 const MAP_FILL_RATIO = 0.8;
 const MIN_STARTER_LINES = 3;
 const MAX_STARTER_LINES = 5;
-const GATES_PER_PIPELINE = 3;
-const MAX_GATE_LEVEL = BUILDING_MAX_LEVEL.MutationGate;
+const BARBECUE_GATE_LEVEL = 4;
+
+interface GateSeedState {
+  barbecuePlaced: boolean;
+}
+
+function gateCountForLine(conveyorCount: number): number {
+  if (conveyorCount <= 0) {
+    return 0;
+  }
+  return Math.round(conveyorCount / 2);
+}
+
+/** 充气门 70%、精舞门 20%、颠倒门 10% */
+function pickNonBarbecueGateLevel(): number {
+  const roll = Math.random();
+  if (roll < 0.5) {
+    return 1;
+  }
+  if (roll < 0.8) {
+    return 2;
+  }
+  return 3;
+}
+
+function pickGateLevel(state: GateSeedState): number {
+  if (!state.barbecuePlaced && Math.random() < 0.25) {
+    state.barbecuePlaced = true;
+    return BARBECUE_GATE_LEVEL;
+  }
+  return pickNonBarbecueGateLevel();
+}
 
 function cellKey(gx: number, gy: number): string {
   return `${gx},${gy}`;
@@ -61,12 +90,34 @@ function pickRandomGateIndices(conveyorCount: number, gateCount: number): number
   return picked.sort((a, b) => a - b);
 }
 
-function randomGateLevel(): number {
-  return 1 + Math.floor(Math.random() * MAX_GATE_LEVEL);
+function randomGateLevel(state: GateSeedState): number {
+  return pickGateLevel(state);
 }
 
-function randomLineLevel(): number {
-  return randomInt(1, 5);
+function shuffleInPlace<T>(items: T[]): void {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+}
+
+/** 为 N 条流水线分配互不相同的传送带等级（1~5） */
+function pickDistinctConveyorLevels(lineCount: number): number[] {
+  const pool = [1, 2, 3, 4, 5];
+  shuffleInPlace(pool);
+  const levels: number[] = [];
+  for (let i = 0; i < lineCount; i++) {
+    levels.push(pool[i % pool.length]);
+  }
+  return levels;
+}
+
+function randomLineLevel(excluded: ReadonlySet<number> = new Set()): number {
+  const pool = [1, 2, 3, 4, 5].filter((level) => !excluded.has(level));
+  if (pool.length === 0) {
+    return randomInt(1, 5);
+  }
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 function gatherStarterBlocked(grid: Grid): Set<string> {
@@ -83,9 +134,14 @@ function gatherStarterBlocked(grid: Grid): Set<string> {
   return blocked;
 }
 
-function buildPipelineParts(conveyorCount: number, level: number): PipelineParts {
+function buildPipelineParts(
+  conveyorCount: number,
+  level: number,
+  gateState: GateSeedState,
+): PipelineParts {
+  const gateCount = gateCountForLine(conveyorCount);
   const gateIndices = new Set(
-    pickRandomGateIndices(conveyorCount, GATES_PER_PIPELINE),
+    pickRandomGateIndices(conveyorCount, gateCount),
   );
   const gates: (Building | null)[] = Array.from(
     { length: conveyorCount },
@@ -95,7 +151,7 @@ function buildPipelineParts(conveyorCount: number, level: number): PipelineParts
       }
       return createBuilding(
         BuildingType.MutationGate,
-        randomGateLevel(),
+        randomGateLevel(gateState),
         Direction.Right,
       );
     },
@@ -116,9 +172,15 @@ function placeStarterLine(
   simulation: Simulation,
   layout: PipelineLayout,
   level: number,
+  gateState: GateSeedState,
 ): void {
   const conveyorCount = layout.filter((cell) => cell.role === 'conveyor').length;
-  placePipelineLayout(grid, simulation, layout, buildPipelineParts(conveyorCount, level));
+  placePipelineLayout(
+    grid,
+    simulation,
+    layout,
+    buildPipelineParts(conveyorCount, level, gateState),
+  );
 }
 
 function tryPlaceLine(
@@ -141,7 +203,9 @@ function tryPlaceLine(
 export function seedRandomProductionLines(grid: Grid, simulation: Simulation): void {
   const targetCells = Math.round(GRID_SIZE * GRID_SIZE * MAP_FILL_RATIO);
   const lineCount = randomInt(MIN_STARTER_LINES, MAX_STARTER_LINES);
+  const lineConveyorLevels = pickDistinctConveyorLevels(lineCount);
   const blocked = gatherStarterBlocked(grid);
+  const gateState: GateSeedState = { barbecuePlaced: false };
 
   const totalConveyors = Math.max(0, targetCells - lineCount * 2);
   const conveyorCounts = randomPartition(totalConveyors, lineCount).sort(
@@ -149,18 +213,24 @@ export function seedRandomProductionLines(grid: Grid, simulation: Simulation): v
   );
 
   let usedCells = 0;
+  let placedLines = 0;
 
   for (const desiredConveyors of conveyorCounts) {
     const layout = tryPlaceLine(grid, blocked, desiredConveyors);
     if (!layout || layout.length < 2) {
       continue;
     }
-    placeStarterLine(grid, simulation, layout, randomLineLevel());
+    const conveyorLevel = lineConveyorLevels[placedLines] ?? randomLineLevel(
+      new Set(lineConveyorLevels),
+    );
+    placeStarterLine(grid, simulation, layout, conveyorLevel, gateState);
     markLayoutBlocked(blocked, layout);
     usedCells += layout.length;
+    placedLines += 1;
   }
 
   const minAcceptable = Math.floor(targetCells * 0.85);
+  const usedStarterLevels = new Set(lineConveyorLevels.slice(0, placedLines));
   while (usedCells < minAcceptable) {
     const remaining = targetCells - usedCells;
     if (remaining < 2) {
@@ -170,7 +240,13 @@ export function seedRandomProductionLines(grid: Grid, simulation: Simulation): v
     if (!layout || layout.length < 2) {
       break;
     }
-    placeStarterLine(grid, simulation, layout, randomLineLevel());
+    placeStarterLine(
+      grid,
+      simulation,
+      layout,
+      randomLineLevel(usedStarterLevels),
+      gateState,
+    );
     markLayoutBlocked(blocked, layout);
     usedCells += layout.length;
   }

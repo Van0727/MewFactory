@@ -1,6 +1,7 @@
 import {
   GOLD_SELL_FLY_DURATION,
   GOLD_SELL_POP_DURATION,
+  formatCompactNumber,
   getGoldSellCoinCount,
 } from '../config';
 import { getGoldChickUrl } from '../render/assets';
@@ -79,7 +80,7 @@ export class GoldSellFx {
 
     const labelEl = document.createElement('div');
     labelEl.className = 'gold-sell-label';
-    labelEl.textContent = `+${amount}`;
+    labelEl.textContent = `+${formatCompactNumber(amount)}`;
     this.layer.appendChild(labelEl);
 
     const coins: CoinParticle[] = [];

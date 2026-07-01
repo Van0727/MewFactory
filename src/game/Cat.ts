@@ -2,6 +2,10 @@ import {
   CAT_MUTATION_PULSE_DURATION,
   CAT_MUTATION_PULSE_PEAK_SCALE,
 } from '../config';
+import { getDoorMultiplier } from '../data/buildings';
+
+/** 充气门：每经过一次体型与价格 +10%（线性叠加，非累乘） */
+export const INFLATE_STACK_BONUS = 0.1;
 
 export interface CatMutationState {
   barbecueStacks: number;
@@ -18,6 +22,8 @@ export interface Cat {
   y: number;
   /** 小猫基础价格（由猫窝等级决定，变异门会直接修改此值） */
   basePrice: number;
+  /** 猫窝产出时的原始售价，用于按变异层数重算价格 */
+  spawnBasePrice: number;
   /** 出生猫窝等级，决定 role 美术（role_1 ~ role_5） */
   nestLevel: number;
   /** 当前移动速度（由所在传送带等级决定） */
@@ -70,6 +76,7 @@ export function createCat(
     x,
     y,
     basePrice,
+    spawnBasePrice: basePrice,
     nestLevel,
     speed,
     mutations: createEmptyMutationState(),
@@ -103,12 +110,33 @@ export function getCatPulseScale(
   return 1 + (peakScale - 1) * Math.sin(t * Math.PI);
 }
 
-/** 充气门：每层体型 ×1.25（可叠加） */
+/** 充气门：每层体型 +10%（1 + 0.1×N，可叠加） */
 export function getCatInflateScale(mutations: CatMutationState): number {
   if (mutations.inflateStacks <= 0) {
     return 1;
   }
-  return Math.pow(1.25, mutations.inflateStacks);
+  return 1 + INFLATE_STACK_BONUS * mutations.inflateStacks;
+}
+
+/** 按变异层数从 spawnBasePrice 重算售价 */
+export function recalculateCatBasePrice(cat: Cat): void {
+  const m = cat.mutations;
+  let price = cat.spawnBasePrice;
+
+  if (m.inflateStacks > 0) {
+    price *= 1 + INFLATE_STACK_BONUS * m.inflateStacks;
+  }
+  if (m.danceStacks > 0) {
+    price *= Math.pow(getDoorMultiplier(2), m.danceStacks);
+  }
+  if (m.flipCount > 0) {
+    price *= Math.pow(getDoorMultiplier(3), m.flipCount);
+  }
+  if (m.barbecueStacks > 0) {
+    price *= Math.pow(getDoorMultiplier(4), m.barbecueStacks);
+  }
+
+  cat.basePrice = Math.round(price);
 }
 
 /** 精舞门转速倍率：每经过一扇门翻倍（2^stacks） */

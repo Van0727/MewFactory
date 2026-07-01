@@ -98,6 +98,50 @@ export function tierExponentialPrice(base: number, ratio: number, level: number)
   return Math.round(base * Math.pow(ratio, tier - 1));
 }
 
+/** 大于此值时使用 M/B/T 紧凑显示 */
+export const COMPACT_NUMBER_THRESHOLD = 1_000_000;
+
+const COMPACT_SUFFIXES = [
+  { divisor: 1e12, suffix: 'T' },
+  { divisor: 1e9, suffix: 'B' },
+  { divisor: 1e6, suffix: 'M' },
+] as const;
+
+/** 大于 100 万时以 M/B/T 后缀显示，有效数字固定 3 位（如 978M、9.78M、1.50M） */
+export function formatCompactNumber(value: number): string {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+
+  if (abs <= COMPACT_NUMBER_THRESHOLD) {
+    return sign + String(Math.round(value));
+  }
+
+  for (const { divisor, suffix } of COMPACT_SUFFIXES) {
+    if (abs >= divisor) {
+      const scaled = abs / divisor;
+      const text = formatThreeDigitMantissa(scaled);
+      return sign + text + suffix;
+    }
+  }
+
+  return sign + String(Math.round(value));
+}
+
+/** 将 1~999.9… 的尾数格式化为 3 位有效数字，避免 toPrecision 产生指数形式 */
+function formatThreeDigitMantissa(scaled: number): string {
+  const exp = Math.floor(Math.log10(scaled));
+  const factor = Math.pow(10, 2 - exp);
+  const mantissa = Math.round(scaled * factor) / factor;
+
+  if (exp >= 2) {
+    return String(Math.round(mantissa));
+  }
+  if (exp === 1) {
+    return mantissa.toFixed(1);
+  }
+  return mantissa.toFixed(2);
+}
+
 /** 重生：初始金币产出倍率 */
 export const REBIRTH_INITIAL_GOLD_MULTIPLIER = 1;
 /** 每次重生增加的金币产出倍率 */
@@ -107,6 +151,21 @@ export const REBIRTH_BASE_COST = 100;
 export const REBIRTH_COST_RATIO = 3;
 /** 重生成功提示显示时长（秒） */
 export const REBIRTH_TOAST_DURATION = 1;
+
+/** 自动出售：每轮间隔（秒） */
+export const AUTO_SELL_INTERVAL = 10;
+
+/** 引导结束后首单延迟（秒） */
+export const ORDER_TUTORIAL_DELAY_SECONDS = 5;
+/** 订单完成后下一单延迟（秒） */
+export const ORDER_NEXT_DELAY_SECONDS = 10;
+export const ORDER_INITIAL_QTY = 10;
+/** 重生后订单数量 = 重生次数 × 此值 */
+export const ORDER_QTY_PER_REBIRTH_LEVEL = 10;
+export const ORDER_BASE_PASSES = 3;
+export const ORDER_PASSES_PER_REBIRTH = 2;
+export const ORDER_RUBY_PER_CAT = 2;
+export const ORDER_RUBY_PER_REBIRTH = 1;
 
 export const COLOR_CAT = '#ffffff';
 export const COLOR_CAT_MUTATED = '#e74c3c';

@@ -1,6 +1,7 @@
 export interface HeldCatDisplayState {
   nestLevel: number;
   inflateStacks: number;
+  danceStacks: number;
   barbecueStacks: number;
   flipCount: number;
 }
@@ -8,14 +9,55 @@ export interface HeldCatDisplayState {
 export interface HeldCatEntry {
   nestLevel: number;
   value: number;
-  /** 拾取后以包装箱首只猫的展示形态绘制 */
+  /** 包装箱内相同形态猫堆叠数量 */
+  count?: number;
   display?: HeldCatDisplayState;
+}
+
+export function heldCatDisplayFromState(state: HeldCatDisplayState): HeldCatDisplayState {
+  return { ...state };
+}
+
+export function heldCatDisplayFromCat(cat: {
+  nestLevel: number;
+  mutations: {
+    inflateStacks: number;
+    danceStacks: number;
+    barbecueStacks: number;
+    flipCount: number;
+  };
+}): HeldCatDisplayState {
+  return {
+    nestLevel: cat.nestLevel,
+    inflateStacks: cat.mutations.inflateStacks,
+    danceStacks: cat.mutations.danceStacks,
+    barbecueStacks: cat.mutations.barbecueStacks,
+    flipCount: cat.mutations.flipCount,
+  };
+}
+
+export function heldCatDisplaysEqual(
+  a: HeldCatDisplayState,
+  b: HeldCatDisplayState,
+): boolean {
+  return (
+    a.nestLevel === b.nestLevel &&
+    a.inflateStacks === b.inflateStacks &&
+    a.danceStacks === b.danceStacks &&
+    a.barbecueStacks === b.barbecueStacks &&
+    a.flipCount === b.flipCount
+  );
+}
+
+export function getHeldCatEntryCount(entry: HeldCatEntry): number {
+  return entry.count ?? 1;
 }
 
 export function getHeldCatDisplayState(entry: HeldCatEntry): HeldCatDisplayState {
   return entry.display ?? {
     nestLevel: entry.nestLevel,
     inflateStacks: 0,
+    danceStacks: 0,
     barbecueStacks: 0,
     flipCount: 0,
   };
@@ -62,6 +104,30 @@ export class HeldCats {
     const value = this.getTotalValue();
     this.stack = [];
     return { count, value };
+  }
+
+  takeMatching(
+    predicate: (entry: HeldCatEntry) => boolean,
+    maxCount: number,
+  ): HeldCatEntry[] {
+    if (maxCount <= 0 || this.stack.length === 0) {
+      return [];
+    }
+
+    const taken: HeldCatEntry[] = [];
+    const keep: HeldCatEntry[] = [];
+
+    for (let i = this.stack.length - 1; i >= 0; i--) {
+      const entry = this.stack[i];
+      if (taken.length < maxCount && predicate(entry)) {
+        taken.push(entry);
+      } else {
+        keep.push(entry);
+      }
+    }
+
+    this.stack = keep.reverse();
+    return taken;
   }
 
   clear(): void {

@@ -5,7 +5,7 @@ import type { Simulation } from './Simulation';
 import { TUTORIAL_BOX_GRID_CELL, TUTORIAL_BOX_USER_CELL } from './gridCoords';
 
 export const TUTORIAL_START_GOLD = 190;
-export const TUTORIAL_STORAGE_KEY = 'mewfactory_tutorial_done';
+export const TUTORIAL_BLOCKED_MESSAGE = '请先完成新手引导';
 export { TUTORIAL_BOX_USER_CELL };
 
 const GATE_LEVEL = 1;
@@ -28,6 +28,17 @@ export interface TutorialUpdateContext {
   heldCats: HeldCats;
 }
 
+const TUTORIAL_STEPS: Exclude<TutorialStep, 'done'>[] = [
+  'buyBox',
+  'placeBox',
+  'waitPack',
+  'collect',
+  'sell',
+  'buyGate',
+  'placeGate',
+  'expandPipeline',
+];
+
 const HINTS: Record<Exclude<TutorialStep, 'done'>, string> = {
   buyBox: '前往包装箱商店，购买纸箱',
   placeBox: '将包装箱放到流水线末端',
@@ -46,22 +57,7 @@ export class TutorialGuide {
   private readonly boxGy = TUTORIAL_BOX_GRID_CELL.gy;
   private hintOverride: string | null = null;
   private expandPipelineElapsed = 0;
-
-  static isCompleted(): boolean {
-    try {
-      return localStorage.getItem(TUTORIAL_STORAGE_KEY) === '1';
-    } catch {
-      return false;
-    }
-  }
-
-  static markCompleted(): void {
-    try {
-      localStorage.setItem(TUTORIAL_STORAGE_KEY, '1');
-    } catch {
-      // ignore storage errors
-    }
-  }
+  onComplete: (() => void) | null = null;
 
   start(): void {
     this.active = true;
@@ -84,6 +80,13 @@ export class TutorialGuide {
     return HINTS[this.step];
   }
 
+  getCurrentStepNumber(): number {
+    if (this.step === 'done') {
+      return 0;
+    }
+    return TUTORIAL_STEPS.indexOf(this.step) + 1;
+  }
+
   getHighlightCell(): { gx: number; gy: number } | null {
     if (this.step === 'placeBox') {
       return { gx: this.boxGx, gy: this.boxGy };
@@ -100,6 +103,20 @@ export class TutorialGuide {
       return gx === this.boxGx && gy === this.boxGy;
     }
     return true;
+  }
+
+  /** 引导期间拦截不符合步骤的购买 */
+  canPurchaseBuilding(type: BuildingType, level: number): boolean {
+    if (!this.isActive()) {
+      return true;
+    }
+    if (this.step === 'buyBox') {
+      return type === BuildingType.PackingBox && level === 1;
+    }
+    if (this.step === 'buyGate') {
+      return type === BuildingType.MutationGate && level === GATE_LEVEL;
+    }
+    return false;
   }
 
   onBuildingPurchased(type: BuildingType, level: number): void {
@@ -194,6 +211,6 @@ export class TutorialGuide {
     this.active = false;
     this.hintOverride = null;
     this.expandPipelineElapsed = 0;
-    TutorialGuide.markCompleted();
+    this.onComplete?.();
   }
 }

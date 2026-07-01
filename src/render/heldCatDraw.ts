@@ -9,7 +9,7 @@ import {
 } from '../config';
 import { getRoleSprite } from './assets';
 import { prepareCatRoleSource, getCatRoleSourceDrawScaleMultiplier } from './catSprite';
-import { drawRoleFlatAtPoint } from './spriteDraw';
+import { configureSpriteSmoothing, drawRoleFlatAtPoint } from './spriteDraw';
 
 function displayToMutations(
   display: ReturnType<typeof getHeldCatDisplayState>,
@@ -17,7 +17,7 @@ function displayToMutations(
   return {
     barbecueStacks: display.barbecueStacks,
     inflateStacks: display.inflateStacks,
-    danceStacks: 0,
+    danceStacks: display.danceStacks,
     flipCount: display.flipCount,
     danceAngle: 0,
   };
@@ -51,6 +51,60 @@ export function drawHeldCatEntry(
     anchorY: PLAYER_SPRITE_ANCHOR_Y,
     flipVertical: mutations.flipCount % 2 === 1,
   });
+}
+
+/** 在固定方形区域内完整绘制小猫（contain，不裁切） */
+export function drawHeldCatEntryFit(
+  ctx: CanvasRenderingContext2D,
+  entry: HeldCatEntry,
+  width: number,
+  height: number,
+): void {
+  const display = getHeldCatDisplayState(entry);
+  const mutations = displayToMutations(display);
+  const roleImg = getRoleSprite(display.nestLevel);
+  if (!roleImg.complete) {
+    return;
+  }
+
+  const inflateScale = getCatInflateScale(mutations);
+  const source = prepareCatRoleSource(roleImg, mutations);
+  const sourceScale = getCatRoleSourceDrawScaleMultiplier(source, roleImg);
+  const sourceSize =
+    source instanceof HTMLImageElement
+      ? source.naturalWidth || source.width
+      : (source as HTMLCanvasElement).width;
+
+  const flipVertical = mutations.flipCount % 2 === 1;
+  const scaleX = Math.abs(Math.cos(mutations.danceAngle)) || 1;
+  const padding = Math.max(2, Math.min(width, height) * 0.06);
+  const innerW = width - padding * 2;
+  const innerH = height - padding * 2;
+  const contentScale =
+    CAT_ROLE_SPRITE_TILE_SCALE * inflateScale * sourceScale;
+  const drawW = sourceSize * contentScale * scaleX;
+  const drawH = sourceSize * contentScale;
+  const fitScale = Math.min(innerW / drawW, innerH / drawH);
+  const finalW = drawW * fitScale;
+  const finalH = drawH * fitScale;
+  const centerX = width / 2;
+  const centerY = height / 2 + innerH * 0.04;
+
+  ctx.save();
+  configureSpriteSmoothing(ctx);
+  ctx.translate(centerX, centerY);
+  if (flipVertical) {
+    ctx.scale(1, -1);
+  }
+  ctx.scale(scaleX, 1);
+  ctx.drawImage(
+    source,
+    (-finalW / scaleX) / 2,
+    -finalH / 2,
+    finalW / scaleX,
+    finalH,
+  );
+  ctx.restore();
 }
 
 /** 在固定方形区域内居中绘制（快捷栏图标等） */

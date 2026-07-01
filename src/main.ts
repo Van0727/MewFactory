@@ -10,6 +10,7 @@ const actionButtons = document.getElementById('action-buttons') as HTMLElement |
 const buildingShopPanel = document.getElementById('building-shop-panel') as HTMLElement | null;
 const attributeShopPanel = document.getElementById('attribute-shop-panel') as HTMLElement | null;
 const goldBar = document.getElementById('gold-bar') as HTMLElement | null;
+const rubyBar = document.getElementById('ruby-bar') as HTMLElement | null;
 const gmGoldBtn = document.getElementById('gm-gold-btn') as HTMLElement | null;
 const uiOverlay = document.getElementById('ui-overlay') as HTMLElement | null;
 const startGamePanel = document.getElementById('start-game-panel') as HTMLElement | null;
@@ -24,6 +25,7 @@ if (
   !buildingShopPanel ||
   !attributeShopPanel ||
   !goldBar ||
+  !rubyBar ||
   !gmGoldBtn ||
   !uiOverlay ||
   !startGamePanel ||
@@ -40,6 +42,7 @@ const actionButtonsEl = actionButtons;
 const buildingShopPanelEl = buildingShopPanel;
 const attributeShopPanelEl = attributeShopPanel;
 const goldBarEl = goldBar;
+const rubyBarEl = rubyBar;
 const gmGoldBtnEl = gmGoldBtn;
 const uiOverlayEl = uiOverlay;
 const startGamePanelEl = startGamePanel;
@@ -57,6 +60,7 @@ async function bootstrap(): Promise<void> {
     buildingShopPanelEl,
     attributeShopPanelEl,
     goldBarEl,
+    rubyBarEl,
     gmGoldBtnEl,
     uiOverlayEl,
     rebirthPanelEl,

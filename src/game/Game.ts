@@ -1,4 +1,5 @@
 import { getGoldSellCoinCount } from '../config';
+import type { MovementState } from '../input/InputManager';
 import { InputManager } from '../input/InputManager';
 import { Renderer } from '../render/Renderer';
 import { ActionButtons } from '../ui/ActionButtons';
@@ -9,16 +10,20 @@ import { BuildingShopPanel } from '../ui/BuildingShopPanel';
 import { AttributeShopPanel } from '../ui/AttributeShopPanel';
 import { RebirthPanel } from '../ui/RebirthPanel';
 import { RebirthToast } from '../ui/RebirthToast';
+import { AutoSellOverlay } from '../ui/AutoSellOverlay';
 import { ClearAllConfirm } from '../ui/ClearAllConfirm';
 import { GmGoldButton } from '../ui/GmGoldButton';
 import { HeldCatStackOverlay } from '../ui/HeldCatStackOverlay';
 import { StartGamePanel } from '../ui/StartGamePanel';
 import { TutorialPanel } from '../ui/TutorialPanel';
+import { OrderPanel } from '../ui/OrderPanel';
+import { RubyBar } from '../ui/RubyBar';
 import {
   BuildingType,
   rotateDirection,
   type Building,
 } from './Building';
+import { AutoSell } from './AutoSell';
 import { IntroDemo } from './IntroDemo';
 import { autoBuildFromInventory, previewAutoBuild } from './autoBuild';
 import { seedRandomProductionLines, seedStarterPipeline } from './starterLayout';
@@ -28,13 +33,21 @@ import { getPlayerCell } from './gridUtils';
 import { HeldCats } from './HeldCats';
 import { Inventory, PICKUP_SLOT_INDEX } from './Inventory';
 import { PlayerGold } from './PlayerGold';
+import { PlayerRuby } from './PlayerRuby';
+import { OrderManager } from './OrderManager';
+import { matchesOrder, collectOrderUnlockContext } from '../data/orders';
 import { RebirthState } from './RebirthState';
 import { CharacterState } from './CharacterState';
 import type { CharacterAttributeId } from '../data/character';
 import { canPlaceBuilding } from './placement';
 import { Player } from './Player';
 import { Simulation } from './Simulation';
-import { TutorialGuide, TUTORIAL_START_GOLD } from './TutorialGuide';
+import type { BuildingShopKind } from './buildingShopCatalog';
+import {
+  TutorialGuide,
+  TUTORIAL_BLOCKED_MESSAGE,
+  TUTORIAL_START_GOLD,
+} from './TutorialGuide';
 
 type InteractionMode = 'place' | 'pickup';
 type GamePhase = 'intro' | 'playing';
@@ -50,9 +63,12 @@ export class Game {
   private inventory = new Inventory();
   private heldCats = new HeldCats();
   private playerGold = new PlayerGold();
+  private playerRuby = new PlayerRuby();
   private rebirthState = new RebirthState();
   private characterState = new CharacterState();
+  private orderManager = new OrderManager();
   private goldBar: GoldBar;
+  private rubyBar: RubyBar;
   private goldSellFx: GoldSellFx;
   private rebirthPanel: RebirthPanel;
   private rebirthToast: RebirthToast;
@@ -62,7 +78,13 @@ export class Game {
   private startGamePanel: StartGamePanel;
   private tutorial = new TutorialGuide();
   private tutorialPanel: TutorialPanel;
-  private lastTutorialHint = '';
+  private orderPanel: OrderPanel;
+  private autoSell: AutoSell;
+  private autoSellOverlay: AutoSellOverlay;
+  private factoryActions: ClearAllConfirm;
+  private lastTutorialKey = '';
+  private purchasedCatNestLevels = new Set<number>([1]);
+  private purchasedGateLevels = new Set<number>();
   private introDemo: IntroDemo;
   private gamePhase: GamePhase = 'intro';
   private mode: InteractionMode = 'pickup';
@@ -81,6 +103,7 @@ export class Game {
     shopContainer: HTMLElement,
     attributeShopContainer: HTMLElement,
     goldBarContainer: HTMLElement,
+    rubyBarContainer: HTMLElement,
     gmGoldBtnContainer: HTMLElement,
     uiOverlay: HTMLElement,
     rebirthPanelContainer: HTMLElement,
@@ -100,6 +123,7 @@ export class Game {
     this.hotbar = new Hotbar(hotbarContainer, this.inventory, this.heldCats);
     this.actionButtons = new ActionButtons(actionButtonsContainer, uiOverlay, canvas);
     this.goldBar = new GoldBar(goldBarContainer, this.playerGold);
+    this.rubyBar = new RubyBar(rubyBarContainer, this.playerRuby);
     new GmGoldButton(gmGoldBtnContainer, () => this.addGmGold(10000));
     this.goldSellFx = new GoldSellFx(canvas, uiOverlay, this.goldBar);
     this.rebirthToast = new RebirthToast(uiOverlay);
@@ -115,25 +139,53 @@ export class Game {
       this.playerGold,
       () => this.onInventoryChange(),
       (kind, level) => {
+        this.recordBuildingPurchase(kind, level);
         this.tutorial.onBuildingPurchased(kind, level);
         this.syncTutorialPanel();
       },
+      (kind, level) => this.tutorial.canPurchaseBuilding(kind, level),
     );
     this.attributeShopPanel = new AttributeShopPanel(
       attributeShopContainer,
       this.characterState,
-      this.playerGold,
+      this.playerRuby,
       (attr) => this.tryUpgradeAttribute(attr),
     );
     this.heldCatStackOverlay = new HeldCatStackOverlay(canvas, uiOverlay);
     this.startGamePanel = new StartGamePanel(startGamePanelContainer, () => this.startGame());
     this.tutorialPanel = new TutorialPanel(uiOverlay);
-    new ClearAllConfirm(
+    this.orderPanel = new OrderPanel(uiOverlay);
+    this.orderManager.setListener(() => this.syncOrderPanel());
+    this.orderManager.setUnlockContextProvider(() =>
+      collectOrderUnlockContext(
+        this.grid,
+        this.inventory,
+        this.purchasedCatNestLevels,
+        this.purchasedGateLevels,
+      ),
+    );
+    this.tutorial.onComplete = () => {
+      this.orderManager.setRebirthCount(this.rebirthState.getCount());
+      this.orderManager.scheduleFirstOrder();
+    };
+    this.autoSellOverlay = new AutoSellOverlay(uiOverlay);
+    this.autoSell = new AutoSell({
+      player: this.player,
+      grid: this.grid,
+      simulation: this.simulation,
+      getMoveSpeed: () => this.characterState.getMoveSpeed(),
+      collectFromBox: () => this.autoBagFromBoxUnderPlayer(),
+      sellAllHeldCats: () => this.sellAllHeldCats(),
+    });
+    this.factoryActions = new ClearAllConfirm(
       factoryActionsRoot,
       modalRoot,
       () => this.clearAllProductionLines(),
+      () => this.toggleAutoSell(),
       () => this.previewAutoBuild(),
       () => this.autoBuildPipeline(),
+      () => !this.tutorial.isActive(),
+      TUTORIAL_BLOCKED_MESSAGE,
     );
     this.applyCharacterStats();
     this.introDemo = new IntroDemo({
@@ -205,15 +257,16 @@ export class Game {
     seedFixedShops(this.grid);
     seedStarterPipeline(this.grid, this.simulation);
 
-    if (!TutorialGuide.isCompleted()) {
-      this.tutorial.start();
-      this.playerGold.setAmount(TUTORIAL_START_GOLD);
-    } else {
-      this.playerGold.setAmount(0);
-    }
+    this.tutorial.start();
+    this.playerGold.setAmount(TUTORIAL_START_GOLD);
+    this.playerRuby.setAmount(0);
+    this.purchasedCatNestLevels = new Set([1]);
+    this.purchasedGateLevels = new Set();
+    this.orderManager.reset();
+    this.orderPanel.hide();
     this.heldCats.clear();
     this.inventory.clear();
-    this.lastTutorialHint = '';
+    this.lastTutorialKey = '';
     this.syncTutorialPanel();
     this.enterPickupMode();
     this.hotbar.select(PICKUP_SLOT_INDEX);
@@ -222,7 +275,9 @@ export class Game {
     this.applyCharacterStats();
     this.buildingShopPanel.close();
     this.attributeShopPanel.close();
+    this.stopAutoSell();
     this.goldBar.refresh();
+    this.rubyBar.refresh();
     this.rebirthPanel.refresh();
     this.hotbar.refresh();
     this.updateActionButtons();
@@ -262,19 +317,26 @@ export class Game {
     if (this.gamePhase === 'intro') {
       this.introDemo.update(dt);
     } else {
-      this.player.update(
-        dt,
-        this.input.getMovement(),
-        this.characterState.getMoveSpeed(),
-      );
+      const movement = this.input.getMovement();
+      this.updateAutoSell(dt, movement);
+      if (!this.autoSell.isControllingPlayer()) {
+        this.player.update(
+          dt,
+          movement,
+          this.characterState.getMoveSpeed(),
+        );
+      }
       this.checkShopSell();
-      this.autoBagFromBoxUnderPlayer();
+      if (!this.autoSell.isControllingPlayer()) {
+        this.autoBagFromBoxUnderPlayer();
+      }
       this.tutorial.update(dt, {
         simulation: this.simulation,
         playerGold: this.playerGold,
         heldCats: this.heldCats,
       });
       this.syncTutorialPanel();
+      this.orderManager.update(dt);
     }
 
     this.goldSellFx.update(dt);
@@ -328,6 +390,11 @@ export class Game {
         ? this.tutorial.getHighlightCell()
         : null,
     });
+
+    if (this.gamePhase === 'playing') {
+      const playerPos = this.renderer.getPlayerClientPosition(this.player);
+      this.orderPanel.updatePlayerOcclusion(playerPos.x, playerPos.y);
+    }
 
     this.heldCatStackOverlay.update(this.player, this.heldCats.getStack());
 
@@ -444,22 +511,47 @@ export class Game {
     this.syncTutorialPanel();
   }
 
+  private syncOrderPanel(): void {
+    if (this.tutorial.isActive()) {
+      this.orderPanel.hide();
+      return;
+    }
+
+    if (this.orderManager.isPanelVisible()) {
+      this.orderPanel.refresh(this.orderManager.getOrder());
+      return;
+    }
+
+    this.orderPanel.hide();
+  }
+
+  private recordBuildingPurchase(kind: BuildingShopKind, level: number): void {
+    if (kind === BuildingType.CatNest) {
+      this.purchasedCatNestLevels.add(level);
+    }
+    if (kind === BuildingType.MutationGate) {
+      this.purchasedGateLevels.add(level);
+    }
+  }
+
   private syncTutorialPanel(): void {
     if (!this.tutorial.isActive()) {
-      if (this.lastTutorialHint) {
+      if (this.lastTutorialKey) {
         this.tutorialPanel.hide();
-        this.lastTutorialHint = '';
+        this.lastTutorialKey = '';
       }
       return;
     }
 
     const hint = this.tutorial.getCurrentHint();
-    if (hint === this.lastTutorialHint) {
+    const step = this.tutorial.getCurrentStepNumber();
+    const key = `${step}:${hint}`;
+    if (key === this.lastTutorialKey) {
       return;
     }
 
-    this.tutorialPanel.show(hint);
-    this.lastTutorialHint = hint;
+    this.tutorialPanel.show(step, hint);
+    this.lastTutorialKey = key;
   }
 
   private checkShopSell(): void {
@@ -497,13 +589,13 @@ export class Game {
 
   private tryUpgradeAttribute(attr: CharacterAttributeId): void {
     const price = this.characterState.getUpgradePrice(attr);
-    if (price === null || !this.playerGold.spend(price)) {
+    if (price === null || !this.playerRuby.spend(price)) {
       this.refreshShopPanels();
       return;
     }
     this.characterState.upgrade(attr);
     this.applyCharacterStats();
-    this.goldBar.refresh();
+    this.rubyBar.refresh();
     this.rebirthPanel.refresh();
     this.refreshShopPanels();
   }
@@ -511,6 +603,7 @@ export class Game {
   private refreshShopPanels(): void {
     this.buildingShopPanel.refresh();
     this.attributeShopPanel.refresh();
+    this.rubyBar.refresh();
   }
 
   private addGmGold(amount: number): void {
@@ -518,6 +611,41 @@ export class Game {
     this.goldBar.refresh();
     this.rebirthPanel.refresh();
     this.refreshShopPanels();
+  }
+
+  private toggleAutoSell(): void {
+    if (this.gamePhase !== 'playing') {
+      return;
+    }
+    if (this.tutorial.isActive()) {
+      return;
+    }
+    if (this.autoSell.isEnabled()) {
+      this.stopAutoSell();
+      return;
+    }
+    this.autoSell.start();
+    this.autoSellOverlay.show();
+  }
+
+  private stopAutoSell(): void {
+    this.autoSell.stop();
+    this.autoSellOverlay.hide();
+  }
+
+  private updateAutoSell(dt: number, movement: MovementState): void {
+    if (!this.autoSell.isEnabled()) {
+      return;
+    }
+    if (this.hasMovementInput(movement)) {
+      this.stopAutoSell();
+      return;
+    }
+    this.autoSell.update(dt);
+  }
+
+  private hasMovementInput(movement: MovementState): boolean {
+    return movement.up || movement.down || movement.left || movement.right;
   }
 
   private previewAutoBuild(): { canProceed: boolean; message: string } {
@@ -591,6 +719,24 @@ export class Game {
   }
 
   private sellAllHeldCats(): void {
+    const activeOrder = this.orderManager.getOrder();
+    if (activeOrder && this.orderManager.hasActiveOrder()) {
+      const needed = this.orderManager.getRemainingNeeded();
+      const taken = this.heldCats.takeMatching(
+        (entry) => matchesOrder(entry, activeOrder),
+        needed,
+      );
+      if (taken.length > 0) {
+        const { rubyReward } = this.orderManager.deliver(taken.length);
+        if (rubyReward > 0) {
+          this.playerRuby.add(rubyReward);
+          this.rubyBar.refresh();
+          this.rubyBar.pulseReceive();
+        }
+        this.syncOrderPanel();
+      }
+    }
+
     const { count, value } = this.heldCats.takeAll();
     if (count <= 0) {
       return;
@@ -613,6 +759,10 @@ export class Game {
   }
 
   private tryRebirth(): void {
+    if (this.tutorial.isActive()) {
+      this.factoryActions.notify(TUTORIAL_BLOCKED_MESSAGE);
+      return;
+    }
     const cost = this.rebirthState.getRebirthCost();
     if (!this.playerGold.spend(cost)) {
       this.rebirthPanel.refresh();
@@ -621,6 +771,7 @@ export class Game {
 
     const newMultiplier = this.rebirthState.getNextGoldMultiplier();
     this.rebirthState.performRebirth();
+    this.orderManager.setRebirthCount(this.rebirthState.getCount());
     this.rebirthToast.show(newMultiplier);
     this.goldBar.refresh();
     this.rebirthPanel.refresh();

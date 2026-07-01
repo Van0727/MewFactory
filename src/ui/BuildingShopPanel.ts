@@ -4,6 +4,7 @@ import {
   getBuildingPrice,
   getShopLabelColor,
 } from '../data/buildings';
+import { formatCompactNumber } from '../config';
 import type { BuildingShopKind } from '../game/buildingShopCatalog';
 import {
   getBuildingShopItemLabel,
@@ -20,6 +21,7 @@ export class BuildingShopPanel {
   private playerGold: PlayerGold;
   private onChange: () => void;
   private onPurchase?: (kind: BuildingShopKind, level: number) => void;
+  private canPurchase?: (kind: BuildingShopKind, level: number) => boolean;
   private titleEl: HTMLElement;
   private itemsEl: HTMLElement;
   private openKind: BuildingShopKind | null = null;
@@ -30,12 +32,14 @@ export class BuildingShopPanel {
     playerGold: PlayerGold,
     onChange: () => void,
     onPurchase?: (kind: BuildingShopKind, level: number) => void,
+    canPurchase?: (kind: BuildingShopKind, level: number) => boolean,
   ) {
     this.container = container;
     this.inventory = inventory;
     this.playerGold = playerGold;
     this.onChange = onChange;
     this.onPurchase = onPurchase;
+    this.canPurchase = canPurchase;
     this.container.innerHTML = '';
     this.container.className = 'building-shop-panel is-hidden';
 
@@ -86,6 +90,8 @@ export class BuildingShopPanel {
       const level = cfg.level;
       const price = getBuildingPrice(kind, level);
       const canAfford = this.playerGold.getAmount() >= price;
+      const allowed = this.canPurchase?.(kind, level) ?? true;
+      const canBuy = canAfford && allowed;
 
       const row = document.createElement('div');
       row.className = 'building-shop-row';
@@ -104,14 +110,14 @@ export class BuildingShopPanel {
 
       const priceEl = document.createElement('span');
       priceEl.className = 'building-shop-price';
-      priceEl.textContent = `${price} 金`;
+      priceEl.textContent = `${formatCompactNumber(price)} 金`;
 
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'shop-btn building-shop-buy';
       btn.textContent = '购买';
-      btn.disabled = !canAfford;
-      btn.classList.toggle('is-affordable', canAfford);
+      btn.disabled = !canBuy;
+      btn.classList.toggle('is-affordable', canBuy);
       btn.addEventListener('click', () => {
         this.tryBuy(kind, level, price);
       });
@@ -125,6 +131,9 @@ export class BuildingShopPanel {
   }
 
   private tryBuy(kind: BuildingShopKind, level: number, price: number): void {
+    if (this.canPurchase && !this.canPurchase(kind, level)) {
+      return;
+    }
     if (!this.playerGold.spend(price)) {
       this.refresh();
       return;

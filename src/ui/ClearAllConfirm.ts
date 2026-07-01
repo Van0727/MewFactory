@@ -24,13 +24,29 @@ export class ClearAllConfirm {
     actionsRoot: HTMLElement,
     modalRoot: HTMLElement,
     onClear: () => void,
+    onAutoSell: () => void,
     onAutoBuildPreview: () => AutoBuildPreviewResult,
     onAutoBuild: () => void,
+    canProceed: () => boolean,
+    blockedMessage: string,
   ) {
     actionsRoot.innerHTML = '';
 
+    const autoSellBtn = makeBtn('auto-sell-btn auto-build-btn', '自动', '出售');
+    autoSellBtn.addEventListener('click', () => {
+      if (!canProceed()) {
+        this.notify(blockedMessage);
+        return;
+      }
+      onAutoSell();
+    });
+
     const autoBuildBtn = makeBtn('auto-build-btn', '自动', '搭建');
     autoBuildBtn.addEventListener('click', () => {
+      if (!canProceed()) {
+        this.notify(blockedMessage);
+        return;
+      }
       const check = onAutoBuildPreview();
       if (!check.canProceed) {
         this.notify(check.message);
@@ -41,9 +57,14 @@ export class ClearAllConfirm {
 
     const clearBtn = makeBtn('clear-factory-btn', '清空', '工厂');
     clearBtn.addEventListener('click', () => {
+      if (!canProceed()) {
+        this.notify(blockedMessage);
+        return;
+      }
       this.ask('清除并回收工厂所有流水线？', onClear);
     });
 
+    actionsRoot.appendChild(autoSellBtn);
     actionsRoot.appendChild(autoBuildBtn);
     actionsRoot.appendChild(clearBtn);
 

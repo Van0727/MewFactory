@@ -11,8 +11,8 @@ import {
 } from '../data/character';
 
 import type { CharacterState } from '../game/CharacterState';
-
-import type { PlayerGold } from '../game/PlayerGold';
+import { formatCompactNumber } from '../config';
+import type { PlayerRuby } from '../game/PlayerRuby';
 
 
 
@@ -22,7 +22,7 @@ export class AttributeShopPanel {
 
   private characterState: CharacterState;
 
-  private playerGold: PlayerGold;
+  private playerRuby: PlayerRuby;
 
   private onUpgrade: (attr: CharacterAttributeId) => void;
 
@@ -38,7 +38,7 @@ export class AttributeShopPanel {
 
     characterState: CharacterState,
 
-    playerGold: PlayerGold,
+    playerRuby: PlayerRuby,
 
     onUpgrade: (attr: CharacterAttributeId) => void,
 
@@ -48,7 +48,7 @@ export class AttributeShopPanel {
 
     this.characterState = characterState;
 
-    this.playerGold = playerGold;
+    this.playerRuby = playerRuby;
 
     this.onUpgrade = onUpgrade;
 
@@ -177,7 +177,7 @@ export class AttributeShopPanel {
 
       const canUpgrade = price !== null;
 
-      const canAfford = canUpgrade && this.playerGold.getAmount() >= price;
+      const canAfford = canUpgrade && this.playerRuby.getAmount() >= price;
 
 
 
@@ -185,7 +185,7 @@ export class AttributeShopPanel {
 
       priceEl.className = 'attribute-shop-price';
 
-      priceEl.textContent = canUpgrade ? `${price} 金` : '—';
+      priceEl.textContent = canUpgrade ? `${formatCompactNumber(price!)} 红宝石` : '—';
 
 
 

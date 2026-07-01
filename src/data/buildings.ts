@@ -90,10 +90,10 @@ export const BUILDING_CONFIGS: BuildingConfigMap = {
   ],
   PackingBox: [
     { level: 1, name: '纸箱', rarity: 'N', color: '#ffffff', spriteId: 'box_1', price: 100, capacity: 10 },
-    { level: 2, name: '顺丰包装箱', rarity: 'R', color: '#4caf50', spriteId: 'box_2', price: 300, capacity: 30 },
-    { level: 3, name: '浴缸', rarity: 'SR', color: '#2196f3', spriteId: 'box_3', price: 900, capacity: 100 },
-    { level: 4, name: '圣诞袜', rarity: 'SSR', color: '#9c27b0', spriteId: 'box_4', price: 2700, capacity: 200 },
-    { level: 5, name: '异次元口袋', rarity: 'UR', color: '#ff9800', spriteId: 'box_5', price: 8100, capacity: 500 },
+    { level: 2, name: '顺丰快递箱', rarity: 'R', color: '#4caf50', spriteId: 'box_2', price: 300, capacity: 30 },
+    { level: 3, name: '叮当口袋箱', rarity: 'SR', color: '#2196f3', spriteId: 'box_3', price: 900, capacity: 100 },
+    { level: 4, name: '圣诞袜箱', rarity: 'SSR', color: '#9c27b0', spriteId: 'box_4', price: 2700, capacity: 200 },
+    { level: 5, name: '宇宙箱', rarity: 'UR', color: '#ff9800', spriteId: 'box_5', price: 8100, capacity: 500 },
   ],
   MutationGate: [
     { level: 1, name: '充气门', rarity: 'N', color: '#ffffff', spriteId: 'door_2', price: 100, priceMultiplier: 1.5, description: '变大变大！', effect: '小猫变大10%，可叠加' },

@@ -6,6 +6,7 @@ import {
   getCatPulseScale,
 } from '../game/Cat';
 import {
+  formatCompactNumber,
   PACKING_BOX_GROUND_LIFT_PX,
   CAT_ROLE_SPRITE_TILE_SCALE,
   PLAYER_SPRITE_ANCHOR_X,
@@ -55,7 +56,7 @@ function drawCatPriceLabel(
   const { cx, cy } = getGridCellAnchor(gx, gy, origin);
   const fontSize = scaleCanvasUi(13, origin.viewScale);
   const labelY = cy - fontSize * 1.5;
-  const text = `${getCatPrice(cat)}`;
+  const text = formatCompactNumber(getCatPrice(cat));
   const fillStyle =
     cat.mutations.barbecueStacks > 0 ? '#ffb4b4' : '#fff';
 
